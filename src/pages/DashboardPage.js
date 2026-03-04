@@ -168,16 +168,34 @@ export class DashboardPage extends BaseComponent {
               <p class="text-sm text-gray-500 mt-1" id="dashboardSubtitle">ดูสถิติยอดวิวและจำนวนโพสต์เทียบของแต่ละกลุ่ม</p>
             </div>
           </div>
-          <button id="backToOverviewBtn" class="hidden bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg transition shadow-sm">
-            <i class="fas fa-arrow-left mr-2"></i>กลับสู่ภาพรวม (Overview)
-          </button>
         </div>
 
         <!-- Date Range Section -->
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-6 flex flex-wrap items-center gap-4">
-          <div class="flex items-center space-x-3 bg-gray-50 p-2 rounded-lg border border-gray-200">
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-6 flex flex-wrap justify-between items-center gap-4">
+          <div class="flex items-center gap-4 max-w-full overflow-x-auto">
+            <div class="font-medium text-gray-700" id="dateRangeDisplay">
+              <!-- Will show the actual start - end dates in Thai -->
+            </div>
+            
+            <div id="customDateControls" class="hidden flex items-end gap-3 transition-opacity">
+              <div>
+                <label class="block text-xs font-semibold text-gray-700 mb-1">ตั้งแต่วันที่</label>
+                <input type="date" id="startDate" class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-700 focus:ring-indigo-500 focus:border-indigo-500">
+              </div>
+              <span class="text-gray-400 mb-2">-</span>
+              <div>
+                <label class="block text-xs font-semibold text-gray-700 mb-1">ถึงวันที่</label>
+                <input type="date" id="endDate" class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-700 focus:ring-indigo-500 focus:border-indigo-500">
+              </div>
+              <button id="updateCustomDateBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-1.5 px-4 rounded-lg transition shadow-sm text-sm h-full mb-0.5">
+                อัปเดต
+              </button>
+            </div>
+          </div>
+          
+          <div class="flex items-center space-x-3 bg-gray-50 p-2 rounded-lg border border-gray-200 w-full sm:w-auto">
             <i class="fas fa-calendar-alt text-gray-500 ml-2"></i>
-            <select id="dateRangePreset" class="bg-transparent border-none text-sm font-semibold text-gray-700 focus:ring-0 cursor-pointer p-2 outline-none">
+            <select id="dateRangePreset" class="bg-transparent border-none text-sm font-semibold text-gray-700 focus:ring-0 cursor-pointer p-2 outline-none w-full appearance-none">
               <option value="today">วันนี้ (Today)</option>
               <option value="yesterday">เมื่อวานนี้ (Yesterday)</option>
               <option value="last7days">7 วันที่ผ่านมา (Last 7 days)</option>
@@ -188,36 +206,27 @@ export class DashboardPage extends BaseComponent {
               <option value="custom">กำหนดเอง (Custom)</option>
             </select>
           </div>
-          
-          <div id="customDateControls" class="hidden flex items-end gap-3 transition-opacity">
-            <div>
-              <label class="block text-xs font-semibold text-gray-700 mb-1">ตั้งแต่วันที่</label>
-              <input type="date" id="startDate" class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-700 focus:ring-indigo-500 focus:border-indigo-500">
-            </div>
-            <span class="text-gray-400 mb-2">-</span>
-            <div>
-              <label class="block text-xs font-semibold text-gray-700 mb-1">ถึงวันที่</label>
-              <input type="date" id="endDate" class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-700 focus:ring-indigo-500 focus:border-indigo-500">
-            </div>
-            <button id="updateCustomDateBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-1.5 px-4 rounded-lg transition shadow-sm text-sm h-full mb-0.5">
-              อัปเดต
-            </button>
-          </div>
-          
-          <div class="text-sm text-gray-500 ml-2" id="dateRangeDisplay">
-            <!-- Will show the actual start - end dates in Thai -->
-          </div>
         </div>
 
         <!-- Summary Metrics -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div class="bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-xl p-6 shadow-md text-white">
-            <p class="text-emerald-50 text-sm font-medium mb-1">ยอดดูสื่อทั้งหมด (Total Views)</p>
-            <h2 id="totalViews" class="text-4xl font-black">0</h2>
+          <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex items-center justify-between">
+            <div>
+              <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1">ยอดดูสื่อทั้งหมด (Total Views)</p>
+              <h2 id="totalViews" class="text-3xl font-bold text-gray-900">0</h2>
+            </div>
+            <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl shadow-inner flex items-center justify-center text-white">
+              <i class="fas fa-eye text-xl"></i>
+            </div>
           </div>
-          <div class="bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl p-6 shadow-md text-white">
-            <p class="text-blue-50 text-sm font-medium mb-1">จำนวนโพสต์รวม (Total Posts)</p>
-            <h2 id="totalPosts" class="text-4xl font-black">0</h2>
+          <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex items-center justify-between">
+            <div>
+              <p class="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-1">จำนวนโพสต์รวม (Total Posts)</p>
+              <h2 id="totalPosts" class="text-3xl font-bold text-gray-900">0</h2>
+            </div>
+            <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-xl shadow-inner flex items-center justify-center text-white">
+              <i class="fas fa-file-alt text-xl"></i>
+            </div>
           </div>
         </div>
 
@@ -228,21 +237,25 @@ export class DashboardPage extends BaseComponent {
 
         <!-- Data Table -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
-            <h3 class="font-bold text-gray-800" id="tableTitle">📋 สถิติแยกตามกลุ่ม (Groups)</h3>
+          <div class="px-6 py-4 border-b border-gray-200 bg-white flex justify-between items-center" style="min-height: 64px;">
+            <h3 class="text-sm font-bold text-gray-800 uppercase tracking-wide" id="tableTitle">สถิติแยกตามกลุ่ม (Groups)</h3>
+            <button id="backToOverviewBtn" class="hidden bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-semibold py-1.5 px-3 rounded-lg transition shadow-sm flex items-center">
+              <i class="fas fa-arrow-left mr-1.5"></i>กลับสู่ภาพรวม (Overview)
+            </button>
           </div>
           <div class="overflow-x-auto">
             <table class="min-w-full text-left border-collapse">
               <thead>
-                <tr class="bg-white border-b border-gray-200 text-sm" id="tableHeaderRow">
-                  <th class="px-6 py-4 font-semibold text-gray-600">กลุ่ม (Group)</th>
-                  <th class="px-6 py-4 font-semibold text-gray-600 text-right">ยอดวิว (Views)</th>
-                  <th class="px-6 py-4 font-semibold text-gray-600 text-right">จำนวนโพสต์ (Posts)</th>
-                  <th class="px-6 py-4 font-semibold text-gray-600 text-center">จัดการ</th>
+                <tr class="bg-gray-50 text-xs uppercase tracking-wider text-gray-500 border-b border-gray-200" id="tableHeaderRow">
+                  <th class="px-4 py-3 font-semibold">กลุ่ม (Group)</th>
+                  <th class="px-4 py-3 font-semibold text-right">จำนวนเพจ (Pages)</th>
+                  <th class="px-4 py-3 font-semibold text-right">ยอดวิว (Views)</th>
+                  <th class="px-4 py-3 font-semibold text-right">จำนวนโพสต์ (Posts)</th>
+                  <th class="px-4 py-3 font-semibold text-center w-32">จัดการ</th>
                 </tr>
               </thead>
-              <tbody id="dataTableBody">
-                <tr><td colspan="4" class="text-center py-8 text-gray-500">กรุณากดปุ่ม "ดึงข้อมูล" เพื่อดูสถิติ</td></tr>
+              <tbody id="dataTableBody" class="text-sm text-gray-700">
+                <tr><td colspan="5" class="text-center py-8 text-gray-400">กรุณากดปุ่ม "ดึงข้อมูล" เพื่อดูสถิติ</td></tr>
               </tbody>
             </table>
           </div>
@@ -272,30 +285,30 @@ export class DashboardPage extends BaseComponent {
     const tableHeaderRow = document.getElementById('tableHeaderRow')
 
     if (this.currentViewMode === 'OVERVIEW') {
-      if (subtitle) subtitle.textContent = "ดูสถิติยอดวิวและจำนวนโพสต์เทียบของแต่ละกลุ่ม"
+      if (subtitle) subtitle.textContent = "หมวดหมู่ภาพรวมการดูเนื้อหา (Overview Details)"
       if (backBtn) backBtn.classList.add('hidden')
-      if (tableTitle) tableTitle.textContent = "📋 สถิติแยกตามกลุ่ม (Groups)"
+      if (tableTitle) tableTitle.textContent = "สถิติแยกตามกลุ่ม (Groups)"
       if (tableHeaderRow) {
         tableHeaderRow.innerHTML = `
-          <th class="px-6 py-4 font-semibold text-gray-600">กลุ่ม (Group)</th>
-          <th class="px-6 py-4 font-semibold text-gray-600 text-right">จำนวนเพจ (Pages)</th>
-          <th class="px-6 py-4 font-semibold text-gray-600 text-right">ยอดวิว (Views)</th>
-          <th class="px-6 py-4 font-semibold text-gray-600 text-right">จำนวนโพสต์ (Posts)</th>
-          <th class="px-6 py-4 font-semibold text-gray-600 text-center">จัดการ</th>
+          <th class="px-4 py-3 font-semibold">กลุ่ม (Group)</th>
+          <th class="px-4 py-3 font-semibold text-right border-l border-gray-100">จำนวนเพจ (Pages)</th>
+          <th class="px-4 py-3 font-semibold text-right border-l border-gray-100">ยอดวิว (Views)</th>
+          <th class="px-4 py-3 font-semibold text-right border-l border-gray-100">จำนวนโพสต์ (Posts)</th>
+          <th class="px-4 py-3 font-semibold text-center border-l border-gray-100 w-32">จัดการ</th>
         `
       }
     } else {
       const cat = this.categories.find(c => c.id === this.selectedCategoryId)
       const catName = cat ? cat.name : 'Unknown Group'
 
-      if (subtitle) subtitle.textContent = `ดูสถิติแยกย่อยของเพจในกลุ่ม: ${catName}`
+      if (subtitle) subtitle.textContent = `เจาะลึกสถิติภายในกลุ่ม: ${catName}`
       if (backBtn) backBtn.classList.remove('hidden')
-      if (tableTitle) tableTitle.textContent = `📋 สถิติของเพจในกลุ่ม "${catName}"`
+      if (tableTitle) tableTitle.textContent = `สถิติของเพจในกลุ่ม "${catName}"`
       if (tableHeaderRow) {
         tableHeaderRow.innerHTML = `
-          <th class="px-6 py-4 font-semibold text-gray-600">เพจ (Page)</th>
-          <th class="px-6 py-4 font-semibold text-gray-600 text-right">ยอดวิว (Views)</th>
-          <th class="px-6 py-4 font-semibold text-gray-600 text-right">จำนวนโพสต์ (Posts)</th>
+          <th class="px-4 py-3 font-semibold">เพจ (Page)</th>
+          <th class="px-4 py-3 font-semibold text-right border-l border-gray-100">ยอดวิว (Views)</th>
+          <th class="px-4 py-3 font-semibold text-right border-l border-gray-100">จำนวนโพสต์ (Posts)</th>
         `
       }
     }
@@ -420,14 +433,12 @@ export class DashboardPage extends BaseComponent {
         label: catData.name,
         data: dataLine,
         borderColor: catData.color,
-        backgroundColor: catData.color + '33', // 20% opacity
-        tension: 0.3,
-        fill: true,
+        backgroundColor: catData.color, // Solid color for legend box
+        tension: 0.1, // Straighter lines
+        fill: false, // Turn off fill so lines don't obscure each other with solid color
         borderWidth: 2,
-        pointBackgroundColor: '#ffffff',
-        pointBorderColor: catData.color,
-        pointRadius: 4,
-        pointHoverRadius: 6,
+        pointRadius: 0, // Remove points by default
+        pointHoverRadius: 5,
         categoryId: cat.id
       })
     })
@@ -449,7 +460,7 @@ export class DashboardPage extends BaseComponent {
     const thisGroupPages = this.groupPages || []
 
     thisGroupPages.forEach(p => {
-      pageDataMap[p.id] = {
+      pageDataMap[p.page_id] = {
         name: p.name,
         dateViews: Object.fromEntries(sortedDates.map(d => [d, 0]))
       }
@@ -470,7 +481,7 @@ export class DashboardPage extends BaseComponent {
     })
 
     const datasets = thisGroupPages.map((p, index) => {
-      const pData = pageDataMap[p.id]
+      const pData = pageDataMap[p.page_id]
       const label = pData.name
       const color = this.getRandomColor(index)
 
@@ -480,14 +491,12 @@ export class DashboardPage extends BaseComponent {
         label,
         data,
         borderColor: color,
-        backgroundColor: color + '33',
-        tension: 0.3,
+        backgroundColor: color, // Solid color for legend box
+        tension: 0.1, // Straighter lines
         fill: false,
         borderWidth: 2,
-        pointBackgroundColor: '#ffffff',
-        pointBorderColor: color,
-        pointRadius: 3,
-        pointHoverRadius: 5
+        pointRadius: 0, // Remove points by default
+        pointHoverRadius: 4
       }
     })
 
@@ -555,8 +564,9 @@ export class DashboardPage extends BaseComponent {
           legend: {
             position: 'top',
             labels: {
-              usePointStyle: true,
-              pointStyle: 'circle'
+              usePointStyle: false,
+              boxWidth: 12,
+              boxHeight: 12
             }
           }
         },
@@ -658,6 +668,9 @@ export class DashboardPage extends BaseComponent {
         const posts = parseInt(row.posts_count) || 0
         const pId = row.page_id
 
+        sumViews += views
+        sumPosts += posts
+
         // Only add up if it maps to an active group map
         if (catId && groupTotals[catId]) {
           groupTotals[catId].views += views
@@ -674,21 +687,21 @@ export class DashboardPage extends BaseComponent {
         const color = data.color
         const pageCount = data.uniquePages ? data.uniquePages.size : 0
 
-        const trClass = 'cursor-pointer hover:bg-indigo-50 transition'
-        const actionHtml = `<button class="text-indigo-600 hover:text-indigo-800 text-sm font-semibold view-group-btn" data-id="${catId}"><i class="fas fa-search-plus mr-1"></i> ดูรายละเอียด</button>`
+        const trClass = 'hover:bg-gray-50 transition border-b border-gray-100 group'
+        const actionHtml = `<button class="text-indigo-600 hover:text-indigo-800 text-xs font-semibold view-group-btn opacity-0 group-hover:opacity-100 transition" data-id="${catId}">รายละเอียด &rarr;</button>`
 
         tableHTML += `
-          <tr class="border-b ${trClass}">
-            <td class="px-6 py-4">
+          <tr class="${trClass}">
+            <td class="px-4 py-3">
               <div class="flex items-center">
-                <span class="w-3 h-3 rounded-full mr-3" style="background-color: ${color}"></span>
+                <span class="w-2.5 h-2.5 rounded-sm mr-3" style="background-color: ${color}"></span>
                 <span class="font-medium text-gray-900">${name}</span>
               </div>
             </td>
-            <td class="px-6 py-4 text-right text-gray-600 font-medium">${uiHelpers.formatNumber(pageCount)}</td>
-            <td class="px-6 py-4 text-right font-semibold text-emerald-600">${uiHelpers.formatNumber(data.views)}</td>
-            <td class="px-6 py-4 text-right text-gray-600">${uiHelpers.formatNumber(data.posts)}</td>
-            <td class="px-6 py-4 text-center">${actionHtml}</td>
+            <td class="px-4 py-3 text-right text-gray-600 border-l border-gray-50">${uiHelpers.formatNumber(pageCount)}</td>
+            <td class="px-4 py-3 text-right font-semibold text-gray-900 border-l border-gray-50">${uiHelpers.formatNumber(data.views)}</td>
+            <td class="px-4 py-3 text-right text-gray-600 border-l border-gray-50">${uiHelpers.formatNumber(data.posts)}</td>
+            <td class="px-4 py-3 text-center border-l border-gray-50 w-32">${actionHtml}</td>
           </tr>
         `
       })
@@ -698,7 +711,7 @@ export class DashboardPage extends BaseComponent {
       const thisGroupPages = this.groupPages || []
 
       thisGroupPages.forEach(p => {
-        pageTotals[p.id] = { name: p.name, views: 0, posts: 0 }
+        pageTotals[p.page_id] = { name: p.name, views: 0, posts: 0 }
       })
 
       this.rawData.forEach(row => {
@@ -722,10 +735,10 @@ export class DashboardPage extends BaseComponent {
       sortedPageIds.forEach(pId => {
         const data = pageTotals[pId]
         tableHTML += `
-          <tr class="border-b hover:bg-gray-50 transition">
-            <td class="px-6 py-4 font-medium text-gray-900">${data.name}</td>
-            <td class="px-6 py-4 text-right font-semibold text-emerald-600">${uiHelpers.formatNumber(data.views)}</td>
-            <td class="px-6 py-4 text-right text-gray-600">${uiHelpers.formatNumber(data.posts)}</td>
+          <tr class="hover:bg-gray-50 transition border-b border-gray-100">
+            <td class="px-4 py-3 font-medium text-gray-900">${data.name}</td>
+            <td class="px-4 py-3 text-right font-semibold text-gray-900 border-l border-gray-50">${uiHelpers.formatNumber(data.views)}</td>
+            <td class="px-4 py-3 text-right text-gray-600 border-l border-gray-50">${uiHelpers.formatNumber(data.posts)}</td>
           </tr>
         `
       })
