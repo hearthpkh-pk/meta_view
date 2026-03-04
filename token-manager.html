@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meta Views - จัดการ Token</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans p-8">
+
+    <div class="max-w-4xl mx-auto">
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-3xl font-bold text-purple-600">🔑 ระบบจัดการกุญแจ (API Tokens)</h1>
+                <p class="text-gray-500 mt-2">เพิ่มและจัดการ Facebook User Token สำหรับดึงข้อมูล</p>
+            </div>
+            <div class="flex gap-3">
+                <a href="index.html" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded shadow transition">
+                    🔙 กลับหน้าจัดการเพจ
+                </a>
+                <a href="page-groups.html" class="bg-orange-100 hover:bg-orange-200 text-orange-700 px-4 py-2 rounded shadow transition">
+                    📋 จัดกรุ๊ปเพจ
+                </a>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow-md mb-8 border border-purple-100">
+            <h2 class="text-lg font-bold mb-4 text-gray-700">➕ เพิ่ม Token ใหม่</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">ชื่อเรียก (เช่น บัญชีแอดมิน A)</label>
+                    <input type="text" id="tokenName" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500" placeholder="ตั้งชื่อให้จำง่าย...">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Access Token (User Token)</label>
+                    <textarea id="accessToken" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 font-mono text-sm" placeholder="EAAPXFnUc1c..."></textarea>
+                </div>
+                <button id="saveTokenBtn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-md shadow transition">
+                    💾 บันทึก Token
+                </button>
+            </div>
+            <div id="statusMsg" class="mt-4 text-sm hidden"></div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="px-6 py-4 bg-gray-50 border-b flex justify-between items-center">
+                <h3 class="font-bold text-gray-700">📋 รายการ Token ในระบบ</h3>
+                <button id="refreshTokensBtn" class="text-sm text-purple-600 hover:text-purple-800 font-medium">🔄 รีเฟรช</button>
+            </div>
+            <table class="min-w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-100 border-b text-sm">
+                        <th class="px-6 py-3 font-semibold text-gray-600">ชื่อเรียก</th>
+                        <th class="px-6 py-3 font-semibold text-gray-600">สถานะ</th>
+                        <th class="px-6 py-3 font-semibold text-gray-600">Token (บางส่วน)</th>
+                        <th class="px-6 py-3 font-semibold text-gray-600 text-center">จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody id="tokenTableBody">
+                    <tr><td colspan="4" class="text-center py-4 text-gray-500">กำลังโหลดข้อมูล...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script type="module" src="./src/js/token-manager.js"></script>
+</body>
+</html>

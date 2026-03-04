@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meta Views - Admin Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans p-4 md:p-8">
+
+    <div class="max-w-5xl mx-auto">
+        <div class="flex justify-between items-center mb-8 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <div>
+                <h1 class="text-3xl font-bold text-blue-600">📊 ระบบจัดการเพจ (Admin Panel)</h1>
+                <p class="text-gray-500 mt-1 text-sm">เลือกเปิด/ปิดสวิตช์ เพจที่ต้องการดึงสถิติรายวัน</p>
+            </div>
+            <div class="flex gap-3">
+                <a href="dashboard.html" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-700 px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm">
+                    📈 ดูหน้าสถิติ
+                </a>
+                <a href="token_manager.html" class="bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm">
+                    🔑 จัดการ Token
+                </a>
+            </div>
+        </div>
+
+        <div class="flex justify-between items-center mb-4">
+            <button onclick="syncPagesFromTokens()" class="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold px-5 py-2.5 rounded-lg shadow-md transition flex items-center">
+                <span id="syncIcon" class="mr-2">📥</span> 
+                <span id="syncText">ซิงค์รายชื่อเพจใหม่จาก Token</span>
+            </button>
+            <button onclick="fetchPages()" class="text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg text-sm font-medium transition border border-blue-200">
+                🔄 รีเฟรชตาราง
+            </button>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-100 border-b">
+                            <th class="px-6 py-4 font-semibold text-gray-600">ID เพจ</th>
+                            <th class="px-6 py-4 font-semibold text-gray-600">ชื่อเพจ</th>
+                            <th class="px-6 py-4 font-semibold text-gray-600">ผูกกับ Token</th>
+                            <th class="px-6 py-4 font-semibold text-gray-600 text-center">สถานะดึงข้อมูล (เปิด/ปิด)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="page-table-body">
+                        <tr><td colspan="4" class="text-center py-8 text-gray-500">กำลังโหลดข้อมูล...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // ⚙️ ตั้งค่า Database (เปลี่ยนใช้ ANON_KEY เหมือนหน้า Token)
+        // ==========================================
+        const SUPABASE_URL = 'https://ifrcrkjajjfzarnasjsk.supabase.co'; 
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlmcmNya2phampmemFybmFzanNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1MTkzMjgsImV4cCI6MjA4ODA5NTMyOH0.983WTrF9lmKyGra_ZeW8KuBYbxUdl0qCA0qpDeKCXcU'; // 🚨 ให้ Dev ก๊อปปี้กุญแจ anon มาใส่ตรงนี้นะครับ
+
+        const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const META_API_VERSION = 'v25.0';
+
+        // 1. ฟังก์ชันดึงรายชื่อเพจจากฐานข้อมูลมาแสดงบนหน้าเว็บ
+        async function fetchPages() {
+            // ดึงข้อมูลเพจ และ JOIN เพื่อเอาชื่อ Token มาแสดงด้วย
+            const { data: pages, error } = await db
+                .from('pages')
+                .select('*, tokens(name)')
+                .order('created_at', { ascending: false });
+            
+            if (error) {
+                alert('เกิดข้อผิดพลาดในการดึงข้อมูล: ' + error.message);
+                return;
+            }
+
+            const tbody = document.getElementById('page-table-body');
+            tbody.innerHTML = ''; 
+
+            if (pages.length === 0) {
+                tbody.innerHTML = `
+                    <tr><td colspan="4" class="text-center py-10 text-gray-500">
+                        ยังไม่มีข้อมูลเพจในระบบ<br>
+                        <span class="text-sm">กรุณากดปุ่ม <b>"ซิงค์รายชื่อเพจใหม่จาก Token"</b> ด้านบน</span>
+                    </td></tr>`;
+                return;
+            }
+
+            pages.forEach(page => {
+                const isChecked = page.is_active ? 'checked' : '';
+                const tokenName = page.tokens ? page.tokens.name : '<span class="text-red-500">ไม่พบ Token</span>';
+                
+                const tr = document.createElement('tr');
+                tr.className = 'border-b hover:bg-gray-50 transition';
+                tr.innerHTML = `
+                    <td class="px-6 py-4 text-sm font-mono text-gray-500">${page.page_id}</td>
+                    <td class="px-6 py-4 font-medium text-gray-800">${page.name}</td>
+                    <td class="px-6 py-4 text-sm text-purple-600 font-medium">${tokenName}</td>
+                    <td class="px-6 py-4 text-center">
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" ${isChecked} class="sr-only peer" onchange="toggleStatus('${page.page_id}', this.checked)">
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                            <span class="ml-3 text-sm font-medium ${page.is_active ? 'text-emerald-600' : 'text-gray-400'}">
+                                ${page.is_active ? 'ทำงานอยู่' : 'ปิดพัก'}
+                            </span>
+                        </label>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // 2. ฟังก์ชันวิ่งไปดึงเพจจาก Meta API อัตโนมัติ (พระเอกของงานนี้)
+        async function syncPagesFromTokens() {
+            const syncIcon = document.getElementById('syncIcon');
+            const syncText = document.getElementById('syncText');
+            
+            // เปลี่ยนสถานะปุ่ม
+            syncIcon.innerHTML = '⏳';
+            syncText.innerText = 'กำลังวิ่งไปดึงข้อมูลจาก Facebook...';
+
+            try {
+                // A. ดึง Token ที่ใช้งานได้ทั้งหมดจากระบบเรา
+                const { data: tokens, error: tokenErr } = await db.from('tokens').select('*').eq('status', 'active');
+                if (tokenErr) throw new Error(tokenErr.message);
+                if (!tokens || tokens.length === 0) {
+                    alert('ไม่พบ Token ที่ใช้งานได้ กรุณาไปเพิ่ม Token ในหน้า "จัดการ Token" ก่อนครับ');
+                    return;
+                }
+
+                let allPagesToUpsert = [];
+                let totalFetched = 0;
+
+                // B. วนลูปเอา Token แต่ละอันไปถาม Facebook
+                for (const token of tokens) {
+                    const res = await fetch(`https://graph.facebook.com/${META_API_VERSION}/me/accounts?limit=100&access_token=${token.access_token}`);
+                    const metaData = await res.json();
+                    
+                    if (metaData.error) {
+                        console.error(`Token ${token.name} error:`, metaData.error.message);
+                        continue; // ถ้า token นี้พัง ให้ข้ามไปอันต่อไป
+                    }
+
+                    if (metaData.data && metaData.data.length > 0) {
+                        metaData.data.forEach(p => {
+                            allPagesToUpsert.push({
+                                page_id: p.id,
+                                name: p.name,
+                                token_id: token.id,
+                                // is_active: ให้เป็นค่า default true จากฐานข้อมูลเมื่อ insert ใหม่
+                            });
+                        });
+                        totalFetched += metaData.data.length;
+                    }
+                }
+
+                // C. บันทึกข้อมูลเพจทั้งหมดลงฐานข้อมูล (Upsert กันข้อมูลซ้ำ)
+                if (allPagesToUpsert.length > 0) {
+                    const { error: upsertErr } = await db.from('pages').upsert(allPagesToUpsert, { onConflict: 'page_id' });
+                    if (upsertErr) throw new Error(upsertErr.message);
+                    alert(`✅ ซิงค์สำเร็จ! ดึงรายชื่อเพจมาได้ทั้งหมด ${totalFetched} เพจ`);
+                } else {
+                    alert('ไม่พบเพจใหม่จาก Token ที่มีอยู่ครับ');
+                }
+
+            } catch (err) {
+                alert('เกิดข้อผิดพลาดในการซิงค์: ' + err.message);
+            } finally {
+                // คืนค่าปุ่มและรีเฟรชตาราง
+                syncIcon.innerHTML = '📥';
+                syncText.innerText = 'ซิงค์รายชื่อเพจใหม่จาก Token';
+                fetchPages();
+            }
+        }
+
+        // 3. ฟังก์ชันเปิด/ปิดสวิตช์
+        async function toggleStatus(pageId, newStatus) {
+            const { error } = await db.from('pages').update({ is_active: newStatus }).eq('page_id', pageId);
+            if (error) {
+                alert('อัปเดตสถานะไม่สำเร็จ!');
+                fetchPages();
+            }
+        }
+
+        // เริ่มทำงานเมื่อเปิดหน้าเว็บ
+        fetchPages();
+    </script>
+</body>
+</html>
