@@ -116,11 +116,20 @@ export class NavigationBar extends BaseComponent {
     // Navigation links
     const navLinks = this.findAll('.nav-link')
     navLinks.forEach(link => {
+      // Handle click navigation
       this.addEventListener(link, 'click', (e) => {
         e.preventDefault()
         const page = e.target.closest('.nav-link').dataset.page
         if (page) {
           window.router?.navigate(page)
+        }
+      })
+
+      // Handle hover intent (Zero-Cost Optimization: Prefetch JS Chunks)
+      this.addEventListener(link, 'mouseenter', (e) => {
+        const page = e.target.closest('.nav-link').dataset.page
+        if (page && window.router && typeof window.router.prefetch === 'function') {
+          window.router.prefetch(page)
         }
       })
     })
