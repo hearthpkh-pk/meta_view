@@ -127,7 +127,7 @@ export class IndexPage extends BaseComponent {
       const loadTimeout = setTimeout(() => {
         console.warn('⚠️ Initial data loading timeout')
         Notification.show('การโหลดข้อมูลนานเกินไป กรุณาลองใหม่', 'warning')
-      }, 15000) // 15 seconds timeout
+      }, 30000) // 30 seconds timeout (increased for cold starts)
 
       await pageStore.loadAllPages()
       clearTimeout(loadTimeout)
@@ -139,16 +139,33 @@ export class IndexPage extends BaseComponent {
       const container = document.getElementById('pagesList')
       if (container) {
         container.innerHTML = `
-          <div class="text-center py-8 text-red-500">
-            <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
-            <div>โหลดข้อมูลไม่สำเร็จ</div>
-            <button class="btn btn-primary mt-4" onclick="window.indexPage?.loadPages()">
-              <i class="fas fa-redo mr-2"></i>ลองใหม่
-            </button>
-          </div>
+          <tr>
+            <td colspan="5" class="text-center py-8 text-red-500">
+              <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
+              <div>โหลดข้อมูลไม่สำเร็จ</div>
+              <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg mt-4 text-sm" onclick="window.indexPage?.loadPages()">
+                <i class="fas fa-redo mr-2"></i>ลองใหม่
+              </button>
+            </td>
+          </tr>
         `
       }
     }
+  }
+
+  /**
+   * Generate skeleton loading rows for the table
+   */
+  _renderSkeletonRows(count = 5) {
+    return Array.from({ length: count }).map(() => `
+      <tr class="skeleton-row border-b">
+        <td class="px-6 py-4"><div class="skeleton skeleton-text" style="width:120px"></div></td>
+        <td class="px-6 py-4"><div class="skeleton skeleton-text" style="width:160px"></div></td>
+        <td class="px-6 py-4"><div class="skeleton skeleton-text" style="width:100px"></div></td>
+        <td class="px-6 py-4 text-center"><div class="skeleton skeleton-badge mx-auto"></div></td>
+        <td class="px-6 py-4 text-center"><div class="skeleton skeleton-text" style="width:80px;margin:0 auto;"></div></td>
+      </tr>
+    `).join('')
   }
 
   render() {
@@ -194,11 +211,7 @@ export class IndexPage extends BaseComponent {
                 </tr>
               </thead>
               <tbody id="pagesList">
-                <tr>
-                  <td colspan="5" class="text-center py-8 text-gray-500">
-                    <div class="loader inline-block"></div> กำลังโหลดข้อมูล...
-                  </td>
-                </tr>
+                ${this._renderSkeletonRows(5)}
               </tbody>
             </table>
           </div>

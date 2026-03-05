@@ -8,7 +8,7 @@ export class Router {
     this.currentPath = window.location.pathname
     this.history = []
     this.maxHistory = 50
-    
+
     this.setupHistoryAPI()
   }
 
@@ -23,6 +23,8 @@ export class Router {
       options: {
         title: '',
         meta: {},
+        auth: false, // Default: No auth required
+        roles: [],   // Default: All roles allowed if auth is true
         ...options
       }
     })
@@ -46,27 +48,27 @@ export class Router {
     try {
       // Add to history
       this.addToHistory(path, state)
-      
+
       // Update URL
       this.updateURL(path)
-      
+
       // Update current route
       const previousRoute = this.currentRoute
       this.currentRoute = route
       this.currentPath = path
-      
+
       // Update page title
       if (route.options.title) {
         document.title = `${route.options.title} - Meta Views`
       }
-      
+
       // Emit navigation event
       this.emit('navigation', {
         from: previousRoute,
         to: route,
         state
       })
-      
+
       return true
     } catch (error) {
       console.error('Navigation error:', error)
@@ -121,9 +123,9 @@ export class Router {
       if (path === this.currentPath) {
         return
       }
-      
+
       const route = this.routes.get(path)
-      
+
       if (route) {
         const previousRoute = this.currentRoute // Store previous route
         this.currentRoute = route
@@ -132,13 +134,13 @@ export class Router {
         this.emit('navigation', { from: previousRoute, to: route, state: {} })
       }
     })
-    
+
     // Handle hash changes
     window.addEventListener('hashchange', (e) => {
       const hash = window.location.hash
       const path = hash.replace('#', '') || '/'
       const route = this.routes.get(path)
-      
+
       if (route) {
         const previousRoute = this.currentRoute // Store previous route
         this.currentRoute = route
@@ -156,9 +158,9 @@ export class Router {
     // Check hash first for SPA routing
     const hash = window.location.hash
     const path = hash.replace('#', '') || '/'
-    
+
     const route = this.routes.get(path)
-    
+
     if (route) {
       this.currentRoute = route
       this.currentPath = path
@@ -182,7 +184,7 @@ export class Router {
   updateURL(path) {
     const currentHash = window.location.hash
     const targetHash = path === '/' ? '#/' : `#${path}`
-    
+
     if (currentHash !== targetHash) {
       window.location.hash = path === '/' ? '/' : path
     }
@@ -197,7 +199,7 @@ export class Router {
       state,
       timestamp: Date.now()
     })
-    
+
     // Limit history size
     if (this.history.length > this.maxHistory) {
       this.history.shift()

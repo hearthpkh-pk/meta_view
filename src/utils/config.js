@@ -2,7 +2,8 @@
 export const config = {
   supabase: {
     url: import.meta.env.VITE_SUPABASE_URL,
-    anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY
+    anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+    serviceKey: import.meta.env.VITE_SUPABASE_SERVICE_KEY
   },
   metaApi: {
     version: import.meta.env.VITE_META_API_VERSION || 'v25.0'
@@ -24,7 +25,7 @@ export function validateConfig() {
     }
     return !value
   })
-  
+
   if (missing.length > 0) {
     throw new Error(`Missing environment variables: ${missing.join(', ')}`)
   }
