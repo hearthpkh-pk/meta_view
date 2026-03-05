@@ -1,4 +1,6 @@
+// @ts-ignore : Deno specific import
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+// @ts-ignore : Deno specific import
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 // CORS headers for browser requests
@@ -7,7 +9,7 @@ const corsHeaders = {
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-serve(async (req) => {
+serve(async (req: any) => {
     // Handle CORS preflight request
     if (req.method === 'OPTIONS') {
         return new Response('ok', { headers: corsHeaders })
@@ -29,7 +31,9 @@ serve(async (req) => {
         // 3. Initialize Supabase Admin Client (using Service Role Key from Env)
         // The SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are automatically injected by Deno/Supabase
         const supabaseAdmin = createClient(
+            // @ts-ignore : Deno global
             Deno.env.get('SUPABASE_URL') ?? '',
+            // @ts-ignore : Deno global
             Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
             {
                 auth: {
@@ -123,7 +127,7 @@ serve(async (req) => {
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
         )
 
-    } catch (error) {
+    } catch (error: any) {
         // Return Error Response
         return new Response(
             JSON.stringify({ success: false, error: error.message }),
