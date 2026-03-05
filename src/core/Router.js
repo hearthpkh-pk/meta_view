@@ -248,6 +248,24 @@ export class Router {
   getRoute(path) {
     return this.routes.get(path)
   }
+
+  /**
+   * Prefetch route component (Zero-Cost Optimization)
+   */
+  prefetch(path) {
+    const route = this.routes.get(path)
+    // If it's a dynamic import function, call it to trigger the network request early
+    if (route && typeof route.component === 'function') {
+      try {
+        // We don't await, just fire and forget to preload the JS chunk
+        route.component().catch(() => {
+          // Ignore prefetch errors silently
+        })
+      } catch (e) {
+        // Ignore synchronous errors
+      }
+    }
+  }
 }
 
 // Global router instance
