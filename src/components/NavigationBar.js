@@ -1,4 +1,6 @@
 import { BaseComponent } from './BaseComponent.js'
+import { authStore, AUTH_KEYS } from '../stores/AuthStore.js'
+import { globalState } from '../stores/StateManager.js'
 
 /**
  * Navigation Bar Component
@@ -8,13 +10,33 @@ export class NavigationBar extends BaseComponent {
   constructor(currentPage = '') {
     super()
     this.currentPage = currentPage
+
+    // Listen to Auth State changes to re-render Navigation if user login/logout
+    this.unsubscribeAuth = globalState.subscribe(AUTH_KEYS.USER, () => {
+      this.renderFull()
+    })
+
     this.createElement()
     this.setupEventListeners()
+  }
+
+  renderFull() {
+    this.createElement()
+    this.setupEventListeners()
+    // Re-attach to DOM if needed
+    const navArea = document.getElementById('navigation-area')
+    if (navArea) {
+      navArea.innerHTML = ''
+      navArea.appendChild(this.element)
+    }
   }
 
   createElement() {
     this.element = document.createElement('nav')
     this.element.className = 'w-full relative z-40'
+
+    const user = authStore.getUser()
+    const isAuthenticated = !!user
 
     this.element.innerHTML = `
       <div class="bg-blue-600 text-white w-full shadow-md">
@@ -53,6 +75,38 @@ export class NavigationBar extends BaseComponent {
                 จัดการ Token
               </span>
             </a>
+            
+            ${authStore.hasRole(['super_admin']) ? `
+            <a href="#/admin/employees" class="relative group p-3 rounded-md transition-colors hover:bg-blue-700 ${this.currentPage === '/admin/employees' ? 'bg-blue-800' : ''} nav-link flex justify-center items-center" data-page="/admin/employees">
+              <i class="fas fa-users-cog text-xl text-yellow-300"></i>
+              <span class="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-gray-800 text-white text-xs font-semibold rounded-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-50 shadow-lg pointer-events-none">
+                จัดการพนักงาน
+              </span>
+            </a>
+            ` : ''}
+            
+            ${isAuthenticated ? `
+            <div class="h-6 w-px bg-blue-500 mx-2"></div>
+            <div class="relative group ml-2">
+              <button id="nav-user-menu-btn" class="flex items-center gap-2 text-sm font-medium focus:outline-none p-2 rounded-md transition-colors hover:bg-blue-700">
+                <div class="w-8 h-8 rounded-full bg-blue-800 flex items-center justify-center text-white border border-blue-400">
+                  <i class="fas fa-user"></i>
+                </div>
+              </button>
+              
+              <!-- Dropdown Menu -->
+              <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all border border-gray-100">
+                <div class="px-4 py-2 border-b border-gray-100">
+                  <p class="text-sm text-gray-500">ลงชื่อเข้าใช้ในชื่อ</p>
+                  <p class="text-sm font-medium text-gray-900 truncate">${user.email}</p>
+                </div>
+                <button id="nav-logout-btn" class="w-full text-left block px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
+                  <i class="fas fa-sign-out-alt"></i> ออกจากระบบ
+                </button>
+              </div>
+            </div>
+            ` : ''}
+
         </div>
       </div>
     `
@@ -70,6 +124,26 @@ export class NavigationBar extends BaseComponent {
         }
       })
     })
+
+    // Logout handling
+    const logoutBtn = this.find('#nav-logout-btn')
+    if (logoutBtn) {
+      this.addEventListener(logoutBtn, 'click', async () => {
+        if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
+          try {
+            await authStore.logout()
+            window.router?.navigate('/login', { force: true })
+          } catch (error) {
+            console.error('Logout failed:', error)
+          }
+        }
+      })
+    }
+  }
+
+  destroy() {
+    if (this.unsubscribeAuth) this.unsubscribeAuth()
+    super.destroy()
   }
 
   setActivePage(pageName) {
