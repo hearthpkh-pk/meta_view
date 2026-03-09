@@ -1,4 +1,4 @@
-import { dbHelpers } from '../utils/database.js'
+import { dbHelpers, db } from '../utils/database.js'
 import { metaApi } from '../utils/metaApi.js'
 
 /**
@@ -16,7 +16,7 @@ export class TokenService {
    */
   async getAllTokens() {
     const cacheKey = 'all_tokens'
-    
+
     // Check cache first
     if (this.cache.has(cacheKey)) {
       const cached = this.cache.get(cacheKey)
@@ -97,7 +97,7 @@ export class TokenService {
 
       // Clear cache
       this.clearCache()
-      
+
       return { success: true, token: newToken }
     } catch (error) {
       console.error('Error creating token:', error)
@@ -123,8 +123,8 @@ export class TokenService {
         throw new Error(validation.errors.join(', '))
       }
 
-      const { error } = await dbHelpers.update('tokens', 
-        updateData, 
+      const { error } = await dbHelpers.update('tokens',
+        updateData,
         { id: tokenId }
       )
 
@@ -134,7 +134,7 @@ export class TokenService {
 
       // Clear cache
       this.clearCache()
-      
+
       return { success: true }
     } catch (error) {
       console.error('Error updating token:', error)
@@ -155,7 +155,7 @@ export class TokenService {
 
       // Clear cache
       this.clearCache()
-      
+
       return { success: true }
     } catch (error) {
       console.error('Error deleting token:', error)
@@ -168,8 +168,8 @@ export class TokenService {
    */
   async toggleTokenStatus(tokenId, status) {
     try {
-      const { error } = await dbHelpers.update('tokens', 
-        { status }, 
+      const { error } = await dbHelpers.update('tokens',
+        { status },
         { id: tokenId }
       )
 
@@ -179,7 +179,7 @@ export class TokenService {
 
       // Clear cache
       this.clearCache()
-      
+
       return { success: true }
     } catch (error) {
       console.error('Error toggling token status:', error)
@@ -221,6 +221,37 @@ export class TokenService {
   }
 
   /**
+   * Exchange Short-Lived Token for Long-Lived Token via Edge Function
+   */
+  async exchangeFacebookToken(shortLivedToken, fbUserId) {
+    try {
+      // Call the Edge Function automatically handling Auth & Headers via Supabase JS SDK
+      const { data, error } = await db.functions.invoke('exchange-fb-token', {
+        body: {
+          shortLivedToken,
+          fbUserId,
+          appName: `FB Connected on ${new Date().toLocaleDateString()}`
+        }
+      })
+
+      if (error) {
+        throw new Error(error.message || 'Failed to call edge function')
+      }
+
+      if (!data || !data.success) {
+        throw new Error(data?.error || 'Failed to exchange token internally')
+      }
+
+      this.clearCache() // Invalidate token cache since we just added a new one
+      return { success: true, token: data.token }
+
+    } catch (error) {
+      console.error('Error in exchangeFacebookToken service:', error)
+      throw error
+    }
+  }
+
+  /**
    * Get pages associated with token
    */
   async getTokenPages(tokenId) {
@@ -253,27 +284,27 @@ export class TokenService {
    */
   validateTokenData(tokenData) {
     const errors = []
-    
+
     if (!tokenData.name || tokenData.name.trim() === '') {
       errors.push('Token name is required')
     }
-    
+
     if (tokenData.name && tokenData.name.length > 100) {
       errors.push('Token name must be less than 100 characters')
     }
-    
+
     if (!tokenData.access_token || tokenData.access_token.trim() === '') {
       errors.push('Access token is required')
     }
-    
+
     if (tokenData.access_token && tokenData.access_token.length < 10) {
       errors.push('Access token appears to be invalid')
     }
-    
+
     if (tokenData.status && !['active', 'inactive'].includes(tokenData.status)) {
       errors.push('Status must be either "active" or "inactive"')
     }
-    
+
     return {
       isValid: errors.length === 0,
       errors
