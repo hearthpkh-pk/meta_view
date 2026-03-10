@@ -104,6 +104,10 @@ src/
 public/           # Static assets
 ```
 
+## Workflows & Guidelines
+
+- **[Next.js to Desktop App Workflow](DESKTOP_WORKFLOW.md)**: กฎและแนวทางปฏิบัติสำหรับการพัฒนา Web App ให้พร้อมสำหรับการแพ็กเป็น Desktop App (Tauri/Electron)
+
 ## Security Notes
 
 - ใช้ Supabase Row Level Security (RLS) เพื่อป้องกันการเข้าถึงข้อมูล
