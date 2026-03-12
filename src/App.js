@@ -78,6 +78,7 @@ export class App {
       title: 'จัดการ Token',
       component: () => import('./pages/TokenManagerPage.js'),
       auth: true,
+      permissions: ['manage_fb_tokens'],
       roles: ['super_admin', 'admin']
     })
 
@@ -85,6 +86,7 @@ export class App {
       title: 'จัดการพนักงาน',
       component: () => import('./pages/EmployeeAdminPage.js'),
       auth: true,
+      permissions: ['manage_employees'],
       roles: ['super_admin']
     })
   }
@@ -109,7 +111,11 @@ export class App {
 
           // Check RBAC Roles
           if (to.options.roles && to.options.roles.length > 0) {
-            if (!authStore.hasRole(to.options.roles)) {
+            const hasPermissionAccess = to.options.permissions && to.options.permissions.length > 0
+              ? to.options.permissions.some(permission => authStore.hasPermission(permission))
+              : false
+
+            if (!hasPermissionAccess && !authStore.hasRole(to.options.roles)) {
               console.warn('⛔ Forbidden: Insufficient Permissions.');
               layoutManager.showError('คุณไม่มีสิทธิ์เข้าถึงหน้านี้', 'warning');
               this.navigate('/', { force: true });

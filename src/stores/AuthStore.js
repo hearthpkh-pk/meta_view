@@ -1,12 +1,26 @@
 import { globalState } from './StateManager.js'
 import { db } from '../utils/database.js'
 
+ const LEGACY_ROLE_NAME_MAP = {
+    super_admin: 'Super Admin',
+    admin: 'Admin',
+    manager: 'Manager',
+    staff: 'Staff'
+ }
+
+ const LEGACY_ROLE_VALUE_BY_NAME = Object.entries(LEGACY_ROLE_NAME_MAP).reduce((acc, [value, name]) => {
+    acc[name] = value
+    return acc
+ }, {})
+
 /**
  * Constants for Auth State Keys
  */
 export const AUTH_KEYS = {
     USER: 'auth:user',
     EMPLOYEE: 'auth:employee',
+    PERMISSIONS: 'auth:permissions',
+    ROLE_NAME: 'auth:role_name',
     SESSION: 'auth:session',
     LOADING: 'auth:loading',
     ERROR: 'auth:error'
@@ -23,6 +37,8 @@ class AuthStore {
         globalState.setState(AUTH_KEYS.LOADING, true);
         globalState.setState(AUTH_KEYS.USER, null);
         globalState.setState(AUTH_KEYS.EMPLOYEE, null);
+        globalState.setState(AUTH_KEYS.PERMISSIONS, []);
+        globalState.setState(AUTH_KEYS.ROLE_NAME, null);
         globalState.setState(AUTH_KEYS.ERROR, null);
     }
 
@@ -79,6 +95,8 @@ class AuthStore {
             globalState.setBatchState({
                 [AUTH_KEYS.USER]: null,
                 [AUTH_KEYS.EMPLOYEE]: null,
+                [AUTH_KEYS.PERMISSIONS]: [],
+                [AUTH_KEYS.ROLE_NAME]: null,
                 [AUTH_KEYS.ERROR]: null
             });
         }
@@ -105,10 +123,36 @@ class AuthStore {
                 }
             } else {
                 globalState.setState(AUTH_KEYS.EMPLOYEE, data);
+                await this.fetchDynamicAccess(data)
             }
         } catch (error) {
             console.error('Failed to fetch employee profile:', error);
             globalState.setState(AUTH_KEYS.ERROR, 'ไม่สามารถดึงข้อมูลสิทธิ์การใช้งานได้');
+        }
+    }
+
+    async fetchDynamicAccess(employeeProfile) {
+        try {
+            if (!employeeProfile?.role_id) {
+                globalState.setState(AUTH_KEYS.PERMISSIONS, []);
+                globalState.setState(AUTH_KEYS.ROLE_NAME, LEGACY_ROLE_NAME_MAP[employeeProfile?.role] || null);
+                return;
+            }
+
+            const [{ data: roleData, error: roleError }, { data: permissionData, error: permissionError }] = await Promise.all([
+                db.from('roles').select('name').eq('id', employeeProfile.role_id).maybeSingle(),
+                db.from('role_permissions').select('permission_id').eq('role_id', employeeProfile.role_id)
+            ])
+
+            if (roleError) throw roleError
+            if (permissionError) throw permissionError
+
+            globalState.setState(AUTH_KEYS.ROLE_NAME, roleData?.name || LEGACY_ROLE_NAME_MAP[employeeProfile?.role] || null)
+            globalState.setState(AUTH_KEYS.PERMISSIONS, (permissionData || []).map(permission => permission.permission_id))
+        } catch (error) {
+            console.warn('Failed to fetch dynamic access data, using legacy fallback:', error)
+            globalState.setState(AUTH_KEYS.PERMISSIONS, [])
+            globalState.setState(AUTH_KEYS.ROLE_NAME, LEGACY_ROLE_NAME_MAP[employeeProfile?.role] || null)
         }
     }
 
@@ -158,12 +202,33 @@ class AuthStore {
     }
 
     getRole() {
-        return globalState.getState(AUTH_KEYS.EMPLOYEE)?.role || 'guest';
+        const employee = globalState.getState(AUTH_KEYS.EMPLOYEE)
+        if (employee?.role) {
+            return employee.role
+        }
+
+        const roleName = globalState.getState(AUTH_KEYS.ROLE_NAME)
+        return LEGACY_ROLE_VALUE_BY_NAME[roleName] || roleName || 'guest';
     }
 
     hasRole(allowedRoles = []) {
         if (!allowedRoles || allowedRoles.length === 0) return true;
-        return allowedRoles.includes(this.getRole());
+        const currentRole = this.getRole()
+        const currentRoleName = this.getRoleName()
+        return allowedRoles.includes(currentRole) || (!!currentRoleName && allowedRoles.includes(currentRoleName));
+    }
+
+    getRoleName() {
+        return globalState.getState(AUTH_KEYS.ROLE_NAME) || LEGACY_ROLE_NAME_MAP[this.getRole()] || null
+    }
+
+    getPermissions() {
+        return globalState.getState(AUTH_KEYS.PERMISSIONS) || []
+    }
+
+    hasPermission(permission) {
+        if (!permission) return false
+        return this.getPermissions().includes(permission)
     }
 
     getUser() {

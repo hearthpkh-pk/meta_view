@@ -9,6 +9,70 @@ const corsHeaders = {
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+ const LEGACY_ROLE_NAME_MAP: Record<string, string> = {
+     super_admin: 'Super Admin',
+     admin: 'Admin',
+     manager: 'Manager',
+     staff: 'Staff'
+ }
+
+ async function resolveRoleId(supabaseAdmin: any, role?: string, roleId?: string) {
+     if (roleId) {
+         return roleId
+     }
+
+     if (!role) {
+         return null
+     }
+
+     const mappedRoleName = LEGACY_ROLE_NAME_MAP[role] || role
+     const { data: roleData, error: roleError } = await supabaseAdmin
+         .from('roles')
+         .select('id')
+         .eq('name', mappedRoleName)
+         .maybeSingle()
+
+     if (roleError) {
+         throw new Error(`Role Lookup Failed: ${roleError.message}`)
+     }
+
+     return roleData?.id || null
+ }
+
+ async function hasManageEmployeesAccess(supabaseAdmin: any, userId: string) {
+     const { data: callerData, error: callerError } = await supabaseAdmin
+         .from('employees')
+         .select('role, role_id')
+         .eq('id', userId)
+         .maybeSingle()
+
+     if (callerError || !callerData) {
+         throw new Error('Forbidden: Unable to load caller employee profile')
+     }
+
+     if (callerData.role_id) {
+         const { data: permissionRows, error: permissionError } = await supabaseAdmin
+             .from('role_permissions')
+             .select('permission_id')
+             .eq('role_id', callerData.role_id)
+
+         if (permissionError) {
+             throw new Error(`Permission Check Failed: ${permissionError.message}`)
+         }
+
+         const hasManagePermission = (permissionRows || []).some((permission: { permission_id: string }) => permission.permission_id === 'manage_employees')
+         if (hasManagePermission) {
+             return callerData
+         }
+     }
+
+     if (callerData.role === 'super_admin') {
+         return callerData
+     }
+
+     throw new Error('Forbidden: Requires manage_employees permission')
+ }
+
 serve(async (req: any) => {
     // Handle CORS preflight request
     if (req.method === 'OPTIONS') {
@@ -51,21 +115,14 @@ serve(async (req: any) => {
             throw new Error('Unauthorized or invalid token')
         }
 
-        const { data: callerData, error: callerError } = await supabaseAdmin
-            .from('employees')
-            .select('role')
-            .eq('id', user.id)
-            .single()
-
-        if (callerError || callerData?.role !== 'super_admin') {
-            throw new Error('Forbidden: Only super_admin can perform this action')
-        }
+        await hasManageEmployeesAccess(supabaseAdmin, user.id)
 
         // 5. Execute requested action
         let resultData = null
 
         if (action === 'create') {
-            const { email, password, firstName, lastName, employeeCode, baseSalary, role, bankName, bankAccountNumber } = payload
+            const { email, password, firstName, lastName, employeeCode, baseSalary, role, roleId, bankName, bankAccountNumber } = payload
+            const resolvedRoleId = await resolveRoleId(supabaseAdmin, role, roleId)
 
             // A. Create Auth User
             const { data: newUserData, error: createError } = await supabaseAdmin.auth.admin.createUser({
@@ -85,6 +142,7 @@ serve(async (req: any) => {
                 first_name: firstName,
                 last_name: lastName,
                 role: role,
+                role_id: resolvedRoleId,
                 base_salary: baseSalary, // Passed as string/number to be stored safely in DECIMAL(15,2)
                 bank_name: bankName || null,
                 bank_account_number: bankAccountNumber || null

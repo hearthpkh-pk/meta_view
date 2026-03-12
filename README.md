@@ -1,128 +1,171 @@
-# Meta Views - Facebook Page Analytics Dashboard
+# 🚀 Meta Views - HR & Operations System
 
-ระบบจัดการและวิเคราะห์สถิติ Facebook Page ด้วย Meta API 
+ระบบจัดการพนักงาน เงินเดือน การลางาน และบัญชี Facebook แบบครบวงจร
 
-## Features
+## 🎯 สถานะปัจจุบัน
 
-- 📊 จัดการ Facebook Page Tokens
-- 📈 ดูสถิติยอดวิวและโพสต์รายวัน
-- 🔧 เปิด/ปิดการดึงข้อมูลแต่ละเพจ
-- 🚀 Modern UI ด้วย Tailwind CSS
-- ⚡ Fast development ด้วย Vite
+✅ **Phase 1 Complete** - Database Migration สำเร็จ  
+🔄 **Phase 2 In Progress** - Application Code Updates  
+🏗️ **Phase 3 Planned** - Next.js Architecture
 
-## Getting Started
+## � โครงสร้างโปรเจค
 
-### Prerequisites
-
-- Node.js 16+ 
-- npm หรือ yarn
-- Supabase account
-- Facebook Developer account
-
-### Installation
-
-1. Clone repository
-```bash
-git clone <repository-url>
-cd meta_views
+```
+meta_views/
+├── � docs/                    # 📚 เอกสารทั้งหมด
+│   ├── README.md              # ดัชนีเอกสาร
+│   ├── MIGRATION_PLAN.md      # แผนการ Migration (ละเอียด)
+│   ├── README_PHASE_1.md      # สรุป Phase 1
+│   ├── implementation_plan.md # แผนการ implement
+│   ├── ARCHITECTURE.md        # สถาปัตยกรรม
+│   ├── DESIGN_SYSTEM.md      # ระบบการออกแบบ
+│   ├── DESKTOP_WORKFLOW.md    # การทำงาน Desktop
+│   └── UX_ANALYSIS_PLAN.md    # แผนวิเคราะห์ UX
+├── 📁 database/               # 🗄️ SQL Scripts ทั้งหมด
+│   ├── README.md              # คำอธิบาย SQL scripts
+│   ├── database_dynamic_rbac.sql    # Dynamic RBAC
+│   ├── database_payroll.sql         # Payroll System
+│   ├── database_fb_accounts.sql     # FB Accounts
+│   ├── database_rls_update.sql      # RLS Updates
+│   └── ...                     # Scripts อื่นๆ
+├── 📁 src/                    # ⚛️ Source Code
+│   ├── components/            # React Components
+│   ├── pages/                 # HTML Pages
+│   ├── services/              # API Services
+│   ├── stores/                # State Management
+│   └── utils/                 # Utilities
+├── 📁 supabase/               # 🔥 Supabase Functions
+│   └── functions/             # Edge Functions
+├── 📁 archive/                # 🗃️ ไฟล์เก่า/ทิ้ง
+├── 📁 scripts/                # 🛠️ สคริปต์ต่างๆ
+└── 📁 public/                 # 📦 Static Assets
 ```
 
-2. Install dependencies
-```bash
-npm install
+## 🚀 Features
+
+### **👥 HR Management**
+- 🔐 Dynamic Role-Based Access Control (RBAC)
+- 👤 จัดการข้อมูลพนักงาน
+- 🏢 จัดการบทบาทและสิทธิ์
+- 📊 ระบบ audit logging
+
+### **💰 Payroll System**
+- 💵 จัดการเงินเดือน (BigInt precision)
+- ⏰ ค่า OT และโบนัส
+- 🧾 หักภาษีและประกันสังคม
+- 📈 รายงานเงินเดือน
+
+### **📅 Leave Management**
+- 🏥 6 ประเภทการลา (ป่วย, กิจ, พักร้อน, คลอด, อื่นๆ)
+- ✅ ระบบอนุมัติการลา
+- 📊 ติดตามวันลาคงเหลือ
+- 📅 ปฏิทินการลา
+
+### **📘 Facebook Management**
+- 📱 จัดการบัญชี Facebook (encrypted credentials)
+- 📄 จัดการ Facebook Pages
+- 👥 มอบหมายพนักงานดูแลบัญชี
+- 📊 ติดตามสถิติและ sync status
+
+## 🎯 การเริ่มต้น
+
+### **📋 ขั้นตอนแรก:**
+
+1. **📖 อ่านเอกสาร**:
+   ```bash
+   # อ่านแผนการทำงาน
+   cat docs/MIGRATION_PLAN.md
+   
+   # อ่านสิ่งที่ทำเสร็จแล้ว
+   cat docs/README_PHASE_1.md
+   ```
+
+2. **🗄️ Setup Database**:
+   ```bash
+   # รัน SQL scripts ตามลำดับ
+   psql -f database/database_dynamic_rbac.sql
+   psql -f database/database_payroll.sql
+   psql -f database/database_fb_accounts.sql
+   psql -f database/database_rls_update.sql
+   ```
+
+3. **⚛️ Start Development**:
+   ```bash
+   npm install
+   npm run dev
+   ```
+
+### **🧪 การทดสอบ Database:**
+
+```sql
+-- ทดสอบว่า migration สำเร็จ
+SELECT COUNT(*) as total_permissions FROM public.permissions; -- 18
+SELECT COUNT(*) as total_roles FROM public.roles; -- 8
+SELECT COUNT(*) as total_employees_with_role FROM public.employees WHERE role_id IS NOT NULL; -- >=1
+SELECT * FROM public.get_user_permissions() LIMIT 5;
+SELECT public.get_current_user_role();
 ```
 
-3. Setup environment variables
+## 📚 เอกสาร
+
+### **📖 อ่านตามลำดับ:**
+1. **[docs/MIGRATION_PLAN.md](./docs/MIGRATION_PLAN.md)** - แผนการ Migration ทั้งหมด
+2. **[docs/README_PHASE_1.md](./docs/README_PHASE_1.md)** - สรุปการทำงาน Phase 1
+3. **[docs/implementation_plan.md](./docs/implementation_plan.md)** - แผนการ implement
+4. **[database/README.md](./database/README.md)** - คำอธิบาย SQL scripts
+
+### **🔗 ลิงก์สำคัญ:**
+- **[Database Scripts](./database/README.md)** - SQL ทั้งหมด
+- **[Documentation](./docs/README.md)** - เอกสารทั้งหมด
+- **[Archive](./archive/README.md)** - ไฟล์เก่า
+
+## 🛠️ Development
+
+### **Scripts:**
 ```bash
-cp .env.example .env
-# แก้ไขค่าใน .env ตามค่าจาก Supabase ของคุณ
+npm run dev      # Start development server
+npm run build    # Build for production
+npm run preview  # Preview production build
 ```
 
-4. Start development server
-```bash
-npm run dev
-```
-
-### Environment Variables
-
+### **Environment Variables:**
 ```env
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 VITE_META_API_VERSION=v25.0
-VITE_APP_NAME=Meta Views
-VITE_APP_VERSION=1.0.0
+VITE_APP_NAME=Meta Views HR & Ops
+VITE_APP_VERSION=2.0.0
 ```
 
-## Database Schema
+## 🔐 Security
 
-ต้องสร้างตารางใน Supabase:
+- 🔒 Supabase Row Level Security (RLS)
+- 🔐 Dynamic Permission System
+- 🛡️ Encrypted credentials for FB accounts
+- 📊 Comprehensive audit logging
+- 🚫 Input validation ทุกจุด
 
-### tokens
-- id (uuid, primary key)
-- name (text)
-- access_token (text)
-- status (text)
-- created_at (timestamp)
+## 🚀 Next Steps
 
-### pages  
-- page_id (text, primary key)
-- name (text)
-- token_id (uuid, foreign key)
-- is_active (boolean)
-- created_at (timestamp)
+### **🔄 Phase 2: Application Updates**
+- [ ] Update Edge Functions สำหรับ Dynamic RBAC
+- [ ] Update Frontend Components
+- [ ] Add new pages (Payroll, Leave, FB Management)
+- [ ] Implement permission-based UI
 
-### daily_stats
-- id (uuid, primary key)
-- page_id (text, foreign key)
-- date (date)
-- page_media_views (integer)
-- posts_count (integer)
-- created_at (timestamp)
+### **🏗️ Phase 3: Next.js Architecture**
+- [ ] Migrate to Next.js App Router
+- [ ] Implement TypeScript
+- [ ] Add security enhancements
+- [ ] Performance optimization
 
-## Usage
+## 📞 ข้อมูลติดต่อ
 
-1. **เพิ่ม Token**: ไปที่หน้า Token Manager เพื่อเพิ่ม Facebook User Token
-2. **ซิงค์เพจ**: กดปุ่ม "ซิงค์รายชื่อเพจใหม่จาก Token" เพื่อดึงรายชื่อเพจ
-3. **จัดการเพจ**: เปิด/ปิดการดึงข้อมูลแต่ละเพจ
-4. **ดูสถิติ**: ไปที่หน้า Dashboard เพื่อดูสถิติรายวัน
+- **Project**: Meta Views HR & Operations System
+- **Status**: Phase 1 Complete ✅
+- **Version**: 2.0.0
+- **Last Updated**: March 12, 2026
 
-## Scripts
+---
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build
-
-## Project Structure
-
-```
-src/
-├── components/     # Reusable components
-├── pages/         # HTML pages
-├── js/           # JavaScript modules
-├── utils/        # Utility functions
-└── styles/       # CSS files
-public/           # Static assets
-```
-
-## Workflows & Guidelines
-
-- **[Next.js to Desktop App Workflow](DESKTOP_WORKFLOW.md)**: กฎและแนวทางปฏิบัติสำหรับการพัฒนา Web App ให้พร้อมสำหรับการแพ็กเป็น Desktop App (Tauri/Electron)
-
-## Security Notes
-
-- ใช้ Supabase Row Level Security (RLS) เพื่อป้องกันการเข้าถึงข้อมูล
-- Token ถูกเก็บในฐานข้อมูลและเข้ารหัส
-- ใช้ environment variables สำหรับค่าที่ sensitive
-- Input validation ทุกจุด
-
-## Contributing
-
-1. Fork the project
-2. Create feature branch
-3. Commit changes
-4. Push to branch
-5. Create Pull Request
-
-## License
-
-MIT License
+**📋 หมายเหตุ**: โปรเจคนี้ evolved จาก Facebook Analytics Dashboard มาเป็น HR & Operations System ครบวงจร

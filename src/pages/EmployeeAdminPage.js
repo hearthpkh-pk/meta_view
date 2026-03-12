@@ -4,15 +4,38 @@ import { db, dbHelpers } from '../utils/database.js'
 import { layoutManager } from '../core/LayoutManager.js'
 import { Notification } from '../components/Notification.js'
 
-const ROLES = [
+ const LEGACY_ROLE_OPTIONS = [
   { value: 'staff', label: 'Staff (พนักงานทั่วไป)', color: 'bg-green-100 text-green-800' },
   { value: 'manager', label: 'Manager (หัวหน้าทีม)', color: 'bg-yellow-100 text-yellow-800' },
   { value: 'admin', label: 'Admin (ผู้จัดการ)', color: 'bg-red-100 text-red-800' },
   { value: 'super_admin', label: 'Super Admin (เจ้าของระบบ)', color: 'bg-purple-100 text-purple-800' }
 ]
 
+ const LEGACY_ROLE_NAME_MAP = {
+  staff: 'Staff',
+  manager: 'Manager',
+  admin: 'Admin',
+  super_admin: 'Super Admin'
+ }
+
+ const LEGACY_ROLE_VALUE_BY_NAME = Object.entries(LEGACY_ROLE_NAME_MAP).reduce((acc, [value, name]) => {
+  acc[name] = value
+  return acc
+ }, {})
+
+ const createDefaultRoleOptions = () => LEGACY_ROLE_OPTIONS.map(role => ({
+  ...role,
+  roleId: null,
+  databaseName: LEGACY_ROLE_NAME_MAP[role.value]
+ }))
+
+ const getLegacyRoleOption = (roleValueOrName) => {
+  const normalizedRoleValue = LEGACY_ROLE_VALUE_BY_NAME[roleValueOrName] || roleValueOrName
+  return LEGACY_ROLE_OPTIONS.find(role => role.value === normalizedRoleValue) || null
+ }
+
 const getRoleColor = (roleValue) => {
-  const role = ROLES.find(r => r.value === roleValue)
+  const role = getLegacyRoleOption(roleValue)
   return role ? role.color : 'bg-gray-100 text-gray-800'
 }
 
@@ -21,11 +44,42 @@ export default class EmployeeAdminPage extends BaseComponent {
     super()
     this.name = 'EmployeeAdminPage'
     this.employees = []
+    this.roleOptions = createDefaultRoleOptions()
     this.isLoading = true
   }
 
   async mount() {
+    await this.fetchRoles()
     await this.fetchEmployees()
+  }
+
+  async fetchRoles() {
+    try {
+      const roleNames = Object.values(LEGACY_ROLE_NAME_MAP)
+      const { data, error } = await dbHelpers.fetch('roles', {
+        select: 'id, name, description',
+        filters: {
+          name: { in: roleNames }
+        }
+      }, false)
+
+      if (error) throw error
+
+      const rolesByName = new Map((data || []).map(role => [role.name, role]))
+      this.roleOptions = LEGACY_ROLE_OPTIONS.map(role => {
+        const databaseName = LEGACY_ROLE_NAME_MAP[role.value]
+        const databaseRole = rolesByName.get(databaseName)
+
+        return {
+          ...role,
+          roleId: databaseRole?.id || null,
+          databaseName
+        }
+      })
+    } catch (error) {
+      console.warn('Failed to fetch dynamic roles, using legacy fallback:', error)
+      this.roleOptions = createDefaultRoleOptions()
+    }
   }
 
   async fetchEmployees() {
@@ -47,6 +101,53 @@ export default class EmployeeAdminPage extends BaseComponent {
       this.isLoading = false
       this.renderFull() // Update UI with data
     }
+  }
+
+  getAvailableRoleOptions() {
+    return this.roleOptions?.length ? this.roleOptions : createDefaultRoleOptions()
+  }
+
+  getEmployeeRoleValue(employee) {
+    if (employee?.role) {
+      return employee.role
+    }
+
+    const matchedRole = this.getAvailableRoleOptions().find(role => role.roleId && role.roleId === employee?.role_id)
+    return matchedRole?.value || 'staff'
+  }
+
+  getEmployeeRoleLabel(employee) {
+    const roleValue = this.getEmployeeRoleValue(employee)
+    const legacyRole = getLegacyRoleOption(roleValue)
+    if (legacyRole) {
+      return legacyRole.label
+    }
+
+    const matchedRole = this.getAvailableRoleOptions().find(role => role.roleId && role.roleId === employee?.role_id)
+    return matchedRole?.databaseName || employee?.role || '-'
+  }
+
+  isProtectedEmployee(employee) {
+    return this.getEmployeeRoleValue(employee) === 'super_admin'
+  }
+
+  setRoleSelection(selectElement, roleValue, roleId) {
+    if (!selectElement) return
+
+    const normalizedRoleValue = roleValue || 'staff'
+    const matchedByValue = Array.from(selectElement.options).find(option => option.value === normalizedRoleValue)
+    if (matchedByValue) {
+      selectElement.value = matchedByValue.value
+      return
+    }
+
+    const matchedByRoleId = Array.from(selectElement.options).find(option => option.dataset.roleId && option.dataset.roleId === roleId)
+    if (matchedByRoleId) {
+      selectElement.value = matchedByRoleId.value
+      return
+    }
+
+    selectElement.value = 'staff'
   }
 
   renderFull() {
@@ -140,8 +241,8 @@ export default class EmployeeAdminPage extends BaseComponent {
                         </div>
                       </td>
                       <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getRoleColor(emp.role)}">
-                          ${emp.role}
+                        <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getRoleColor(this.getEmployeeRoleValue(emp))}">
+                          ${this.getEmployeeRoleLabel(emp)}
                         </span>
                       </td>
                       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
@@ -155,11 +256,12 @@ export default class EmployeeAdminPage extends BaseComponent {
                           data-code="${emp.employee_code || ''}" 
                           data-fname="${emp.first_name || ''}" 
                           data-lname="${emp.last_name || ''}" 
-                          data-role="${emp.role}" 
+                          data-role="${this.getEmployeeRoleValue(emp)}" 
+                          data-roleid="${emp.role_id || ''}"
                           data-salary="${emp.base_salary || 0}"
                           data-bankname="${emp.bank_name || ''}"
                           data-bankacc="${emp.bank_account_number || ''}">แก้ไข</button>
-                        ${emp.role !== 'super_admin' ? `<button class="text-red-600 hover:text-red-900 delete-btn" data-id="${emp.id}" data-name="${emp.first_name} ${emp.last_name}">ลบ</button>` : ''}
+                        ${!this.isProtectedEmployee(emp) ? `<button class="text-red-600 hover:text-red-900 delete-btn" data-id="${emp.id}" data-name="${emp.first_name} ${emp.last_name}">ลบ</button>` : ''}
                       </td>
                     </tr>
                   `).join('')}
@@ -250,7 +352,7 @@ export default class EmployeeAdminPage extends BaseComponent {
                               <label for="new-role" class="block text-sm font-medium leading-6 text-gray-900">สิทธิ์การใช้งาน (Role)</label>
                               <div class="mt-2">
                                 <select id="new-role" name="role" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 pl-3">
-                                  ${ROLES.map(r => `<option value="${r.value}">${r.label}</option>`).join('')}
+                                  ${this.getAvailableRoleOptions().map(role => `<option value="${role.value}" data-role-id="${role.roleId || ''}">${role.label}</option>`).join('')}
                                 </select>
                               </div>
                             </div>
@@ -323,7 +425,10 @@ export default class EmployeeAdminPage extends BaseComponent {
         const fName = document.getElementById('new-fname').value
         const lName = document.getElementById('new-lname').value
         const empCode = document.getElementById('new-emp-code').value || null
-        const role = document.getElementById('new-role').value
+        const roleSelect = document.getElementById('new-role')
+        const selectedRoleOption = roleSelect?.selectedOptions?.[0] || null
+        const role = roleSelect.value
+        const roleId = selectedRoleOption?.dataset.roleId || null
         const salary = document.getElementById('new-salary').value || 0
         const bankName = document.getElementById('new-bank-name').value || null
         const bankAcc = document.getElementById('new-bank-acc').value || null
@@ -340,6 +445,7 @@ export default class EmployeeAdminPage extends BaseComponent {
               first_name: fName,
               last_name: lName,
               role: role,
+              role_id: roleId,
               base_salary: salary, // Stored smoothly as a string formatted into DECIMAL
               bank_name: bankName,
               bank_account_number: bankAcc
@@ -361,6 +467,7 @@ export default class EmployeeAdminPage extends BaseComponent {
                   lastName: lName,
                   employeeCode: empCode,
                   role,
+                  roleId,
                   baseSalary: salary,
                   bankName: bankName,
                   bankAccountNumber: bankAcc
@@ -411,7 +518,7 @@ export default class EmployeeAdminPage extends BaseComponent {
           document.getElementById('new-fname').value = e.target.dataset.fname || ''
           document.getElementById('new-lname').value = e.target.dataset.lname || ''
           document.getElementById('new-emp-code').value = e.target.dataset.code || ''
-          document.getElementById('new-role').value = e.target.dataset.role || 'staff'
+          this.setRoleSelection(document.getElementById('new-role'), e.target.dataset.role || 'staff', e.target.dataset.roleid || '')
           document.getElementById('new-salary').value = e.target.dataset.salary || '0'
           document.getElementById('new-bank-name').value = e.target.dataset.bankname || ''
           document.getElementById('new-bank-acc').value = e.target.dataset.bankacc || ''

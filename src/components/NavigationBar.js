@@ -37,6 +37,7 @@ export class NavigationBar extends BaseComponent {
 
     const user = authStore.getUser()
     const isAuthenticated = !!user
+    const canManageEmployees = authStore.hasPermission('manage_employees') || authStore.hasRole(['super_admin'])
 
     this.element.innerHTML = `
       <div class="bg-blue-600 text-white w-full shadow-md">
@@ -76,7 +77,7 @@ export class NavigationBar extends BaseComponent {
               </span>
             </a>
             
-            ${authStore.hasRole(['super_admin']) ? `
+            ${canManageEmployees ? `
             <a href="#/admin/employees" class="relative group p-3 rounded-md transition-colors hover:bg-blue-700 ${this.currentPage === '/admin/employees' ? 'bg-blue-800' : ''} nav-link flex justify-center items-center" data-page="/admin/employees">
               <i class="fas fa-users-cog text-xl text-yellow-300"></i>
               <span class="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-gray-800 text-white text-xs font-semibold rounded-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-50 shadow-lg pointer-events-none">
