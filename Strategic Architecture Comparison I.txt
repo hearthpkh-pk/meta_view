@@ -1,0 +1,38 @@
+Strategic Architecture Comparison: Internal HR & Operations Tools
+เพื่อตอบคำถามว่าควรเดินหน้าต่อทางไหนดีที่สุดสำหรับ Internal Tools (fb-manager และ meta views) นี่คือการเปรียบเทียบข้อดี-ข้อเสียของทางเลือกทาง Architecture ครับ
+
+🏗️ Option 1: Hub & Spoke (Microservices)
+แยก Database กัน (fb-manager 1 ก้อน, meta views 1 ก้อน) และสร้าง HR Hub อีก 1 ก้อนตรงกลางเพื่อเก็บ Login และ Role
+
+✅ ข้อดี (Pros): ปลอดภัยสูงสุด ถ้าระบบ 1 โดนแฮ็ก ข้อมูลในระบบอื่นจะไม่รั่วไหลตามไปด้วย ❌ ข้อเสีย (Cons): ละเมิดข้อกำหนด Zero-Cost ทันที เพราะ Supabase ฟรีให้แค่ 2 Projects ถ้าทำแบบนี้ต้องจ่ายเงินค่าแพ็กเกจ Pro
+
+📄 Option 2: Google Apps Script + Google Sheets (Legacy)
+ถอยกลับไปใช้ Google Sheets และผูก Logic ผ่าน Apps Script
+
+✅ ข้อดี (Pros): Zero-cost ของแท้ ไม่มีค่าใช้จ่าย ❌ ข้อเสีย (Cons): รับ Data Volume ไม่ไหว (ทนโหลด API จาก Facebook 200 เพจต่อวันไม่ไหว) Google Sheets จะค้าง และ Apps Script จะติด Quota Limit (Timeout) จนระบบพัง
+
+📡 Option 4 (ใหม่): API-Driven (แยก Database แต่ส่ง API หากัน)
+"ให้มี Database 2 ก้อนแยกเหมือนเดิม (meta-views กับ fb-manager) และให้ระบบ meta-views สรุปข้อมูล แล้วส่ง API ยิงข้อมูลข้ามมาให้ fb-manager แสดงผล"
+
+✅ ข้อดี (Pros):
+
+Zero-cost พอดีเป๊ะ: ใช้ 2 Projects (FB ก้อนนึง, Meta ก้อนนึง) ซึ่งอยู่ในโควต้า Free-tier ของ Supabase พอดี
+แยกส่วนพัฒนาได้อิสระ: ทีมไหนอยากแก้โค้ดฝั่งตัวเองก็ทำได้เลย ไม่ต้องกลัวพังไปถึงอีกทีม
+❌ ข้อเสีย (Cons):
+
+ระบบ Login และ Role ยังต้องแยกกัน: พนักงานต้องเข้าสู่ระบบ 2 ครั้ง (ล็อกอินฝั่ง FB ที ฝั่ง Meta ที) ไม่สามารถทำ SSO เนียนๆ ได้
+ปัญหา Data Sync (ข้อมูลไม่ตรงกัน): ถ้าระบบ Meta ยิง API แต่ระหว่างทางเน็ตหลุด / Vercel Timeout ทำให้ข้อมูลใน fb-manager ไม่อัปเดต คุณจะปวดหัวมากตอนมานั่งไล่เช็กว่า "ตกลงเพจนี้โดนแบนหรือยัง?"
+การตั้ง Security Data ข้ามแอปยากมาก: ข้อมูลเพจของลูกน้องที่ถูกส่งมาจาก Meta จะต้องมาถูกเขียน Logic คัดกรองซ้ำอีกรอบใน fb-manager (เสี่ยงต่อการเกิดช่องโหว่ให้คนนอกทีมมองเห็นข้อมูลกัน)
+🎯 Option 3: Monolithic Database (รวมศูนย์) - "ทางเลือกที่ดีที่สุด"
+"รวมทุกอย่างเป็น Project เดียว ทั้ง fb-manager, meta views และ HR อยู่ใน Database (Supabase) ก้อนเดียวกันไปเลย"
+
+ตอบสนองข้อจำกัด (Zero-Cost & High Volume):
+
+ฟรี (Zero-Cost): ใช้ Supabase แค่ 1 Project ทำให้ไม่เกินโควต้า Free Tier
+เอาต์ปริมาณข้อมูลอยู่: PostgreSQL สามารถจัดเก็บข้อมูลหลักล้านเรคคอร์ดได้สบาย (โหลด 200 เพจต่อวันโดยไม่ค้าง)
+จบปัญหา Login / Role: ทุกอย่างจบในตัว หัวหน้าและลูกน้องใช้ Login เดียวกัน Database จะจัดการกรองข้อมูลให้ (ผ่าน RLS) ว่าใครมีสิทธิ์ดูข้อมูลของใคร
+ไม่ต้องเขียน Data Sync: ไม่ต้องยิง API ข้ามไปมา ข้อมูลเดียวเห็นเหมือนกันทั้งหมด (Real-time)
+🏆 สรุปข้อพิจารณา (Architect's Final Verdict)
+ด้วยข้อจำกัดที่ดุดัน ทั้งยอดดึง API 200 เพจ/วัน, ต้องทำ Zero-cost, และต้องการรักษาสิทธิ์ของหัวหน้า/ลูกทีม (RBAC)...
+
+Option 3 (Monolithic Database) ยังคงเป็นแชมป์แบบไร้คู่แข่งครับ แม้ Option 4 จะทำได้จริงและฟรี (ใช้ครบ 2 โปรเจกต์ฟรีพอดี) แต่มันจะสร้างภาระทาง Technical Debt ระยะยาวอย่างมหาศาลให้กับคนดูแลระบบ (Data ไม่ sync, Login ซ้ำซ้อน, ไล่บั๊กยาก) การรวม Database คือสิ่งที่ระบบ Enterprise ปัจจุบันนิยมทำกันมากที่สุดครับ
