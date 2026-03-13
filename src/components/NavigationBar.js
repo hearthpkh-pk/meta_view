@@ -78,6 +78,20 @@ export class NavigationBar extends BaseComponent {
             </a>
             
             ${canManageEmployees ? `
+            <a href="#/admin/fb-accounts" class="relative group p-3 rounded-md transition-colors hover:bg-blue-700 ${this.currentPage === '/admin/fb-accounts' ? 'bg-blue-800' : ''} nav-link flex justify-center items-center" data-page="/admin/fb-accounts">
+              <i class="fab fa-facebook-square text-xl text-blue-200"></i>
+              <span class="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-gray-800 text-white text-xs font-semibold rounded-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-50 shadow-lg pointer-events-none">
+                จัดการบัญชี FB
+              </span>
+            </a>
+            
+            <a href="#/admin/payroll" class="relative group p-3 rounded-md transition-colors hover:bg-blue-700 ${this.currentPage === '/admin/payroll' ? 'bg-blue-800' : ''} nav-link flex justify-center items-center" data-page="/admin/payroll">
+              <i class="fas fa-funnel-dollar text-xl text-green-300"></i>
+              <span class="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-gray-800 text-white text-xs font-semibold rounded-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-50 shadow-lg pointer-events-none">
+                จัดการเงินเดือน
+              </span>
+            </a>
+
             <a href="#/admin/employees" class="relative group p-3 rounded-md transition-colors hover:bg-blue-700 ${this.currentPage === '/admin/employees' ? 'bg-blue-800' : ''} nav-link flex justify-center items-center" data-page="/admin/employees">
               <i class="fas fa-users-cog text-xl text-yellow-300"></i>
               <span class="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-gray-800 text-white text-xs font-semibold rounded-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-50 shadow-lg pointer-events-none">

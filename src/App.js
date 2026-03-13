@@ -87,7 +87,23 @@ export class App {
       component: () => import('./pages/EmployeeAdminPage.js'),
       auth: true,
       permissions: ['manage_employees'],
-      roles: ['super_admin']
+      roles: ['super_admin', 'admin']
+    })
+
+    router.register('/admin/fb-accounts', 'FBAccountsPage', {
+      title: 'จัดการบัญชี FB',
+      component: () => import('./pages/FBAccountsPage.js'),
+      auth: true,
+      permissions: ['manage_all_fb'],
+      roles: ['super_admin', 'admin']
+    })
+
+    router.register('/admin/payroll', 'PayrollPage', {
+      title: 'จัดการเงินเดือน',
+      component: () => import('./pages/PayrollPage.js'),
+      auth: true,
+      permissions: ['manage_payroll'],
+      roles: ['super_admin', 'admin']
     })
   }
 

@@ -71,17 +71,13 @@ INSERT INTO public.permissions (id, description, category) VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- ==========================================
--- 5. Insert Default Roles
+-- 5. Insert Default Roles (Simplified 4 Levels)
 -- ==========================================
 INSERT INTO public.roles (name, description, level) VALUES
-    ('Super Admin', 'เจ้าของระบบ - สิทธิ์สูงสุด', 0),
-    ('CEO', 'ประธานบริษัท', 10),
-    ('Admin', 'ผู้จัดการระบบ', 20),
-    ('HR Manager', 'ผู้จัดการฝ่ายบุคคล', 30),
-    ('Finance Manager', 'ผู้จัดการการเงิน', 40),
-    ('Manager', 'หัวหน้าทีม', 50),
-    ('Senior Staff', 'พนักงานอาวุโส', 60),
-    ('Staff', 'พนักงานทั่วไป', 70)
+    ('Super Admin', 'เจ้าของระบบ', 0),
+    ('Admin', 'ผู้จัดการ', 10),
+    ('Manager', 'หัวหน้าทีม', 20),
+    ('Staff', 'พนักงานทั่วไป', 30)
 ON CONFLICT (name) DO NOTHING;
 
 -- ==========================================
@@ -94,43 +90,11 @@ FROM public.roles r, public.permissions p
 WHERE r.name = 'Super Admin'
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 
--- CEO - Most permissions except system management
+-- Admin - All management permissions
 INSERT INTO public.role_permissions (role_id, permission_id)
 SELECT r.id, p.id
 FROM public.roles r, public.permissions p
-WHERE r.name = 'CEO' AND p.id NOT IN ('manage_users', 'manage_roles')
-ON CONFLICT (role_id, permission_id) DO NOTHING;
-
--- Admin - Employee, Facebook, Payroll management
-INSERT INTO public.role_permissions (role_id, permission_id)
-SELECT r.id, p.id
-FROM public.roles r, public.permissions p
-WHERE r.name = 'Admin' AND p.id IN (
-    'view_all_employees', 'manage_employees',
-    'manage_all_fb', 'view_team_fb', 'view_fb_insights', 'manage_fb_tokens',
-    'view_team_leaves', 'approve_leave'
-)
-ON CONFLICT (role_id, permission_id) DO NOTHING;
-
--- HR Manager - Employee and Leave management
-INSERT INTO public.role_permissions (role_id, permission_id)
-SELECT r.id, p.id
-FROM public.roles r, public.permissions p
-WHERE r.name = 'HR Manager' AND p.id IN (
-    'view_all_employees', 'manage_employees',
-    'view_team_leaves', 'approve_leave',
-    'view_own_profile'
-)
-ON CONFLICT (role_id, permission_id) DO NOTHING;
-
--- Finance Manager - Payroll focused
-INSERT INTO public.role_permissions (role_id, permission_id)
-SELECT r.id, p.id
-FROM public.roles r, public.permissions p
-WHERE r.name = 'Finance Manager' AND p.id IN (
-    'manage_payroll', 'view_payroll_reports', 'approve_payroll',
-    'view_all_employees'
-)
+WHERE r.name = 'Admin' AND p.id NOT IN ('manage_roles')
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 
 -- Manager - Team management
@@ -138,19 +102,7 @@ INSERT INTO public.role_permissions (role_id, permission_id)
 SELECT r.id, p.id
 FROM public.roles r, public.permissions p
 WHERE r.name = 'Manager' AND p.id IN (
-    'view_all_employees', 'view_team_fb', 'view_team_leaves', 'approve_leave',
-    'view_own_profile'
-)
-ON CONFLICT (role_id, permission_id) DO NOTHING;
-
--- Senior Staff - Extended staff permissions
-INSERT INTO public.role_permissions (role_id, permission_id)
-SELECT r.id, p.id
-FROM public.roles r, public.permissions p
-WHERE r.name = 'Senior Staff' AND p.id IN (
-    'view_team_fb', 'manage_own_fb', 'view_fb_insights',
-    'request_leave', 'view_team_leaves',
-    'view_own_profile'
+    'view_all_employees', 'view_team_fb', 'view_fb_insights', 'view_own_profile'
 )
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 
@@ -159,9 +111,7 @@ INSERT INTO public.role_permissions (role_id, permission_id)
 SELECT r.id, p.id
 FROM public.roles r, public.permissions p
 WHERE r.name = 'Staff' AND p.id IN (
-    'manage_own_fb', 'view_fb_insights',
-    'request_leave',
-    'view_own_profile'
+    'manage_own_fb', 'view_fb_insights', 'view_own_profile'
 )
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 
@@ -215,14 +165,17 @@ ALTER TABLE public.role_permissions ENABLE ROW LEVEL SECURITY;
 -- ==========================================
 
 -- Permissions Table - Read-only for authenticated users
+DROP POLICY IF EXISTS "Allow read permissions for authenticated users" ON public.permissions;
 CREATE POLICY "Allow read permissions for authenticated users" ON public.permissions
     FOR SELECT USING (auth.role() = 'authenticated');
 
 -- Roles Table - Read-only for authenticated users
+DROP POLICY IF EXISTS "Allow read roles for authenticated users" ON public.roles;
 CREATE POLICY "Allow read roles for authenticated users" ON public.roles
     FOR SELECT USING (auth.role() = 'authenticated');
 
 -- Role-Permissions Table - Read-only for authenticated users
+DROP POLICY IF EXISTS "Allow read role permissions for authenticated users" ON public.role_permissions;
 CREATE POLICY "Allow read role permissions for authenticated users" ON public.role_permissions
     FOR SELECT USING (auth.role() = 'authenticated');
 

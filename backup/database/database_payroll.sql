@@ -13,24 +13,24 @@ CREATE TABLE IF NOT EXISTS public.payroll_records (
     month INTEGER NOT NULL CHECK (month >= 1 AND month <= 12),
     year INTEGER NOT NULL CHECK (year >= 2020 AND year <= 2100),
     
-    -- Salary Components (BigInt for precision, no floating point)
-    base_salary BIGINT NOT NULL DEFAULT 0,  -- เงินเดือนพื้นฐาน (สกุล: สตางค์)
+    -- Salary Components (Integer for simple currency, no Satang/decimals)
+    base_salary INTEGER NOT NULL DEFAULT 0,  -- เงินเดือนพื้นฐาน
     overtime_hours INTEGER DEFAULT 0,  -- ชั่วโมง OT
-    overtime_rate BIGINT DEFAULT 0,  -- อัตราค่า OT ต่อชั่วโมง
-    overtime_pay BIGINT DEFAULT 0,  -- ค่า OT รวม
+    overtime_rate INTEGER DEFAULT 0,  -- อัตราค่า OT ต่อชั่วโมง
+    overtime_pay INTEGER DEFAULT 0,  -- ค่า OT รวม
     
     -- Commissions & Bonuses
-    sales_commission BIGINT DEFAULT 0,  -- ค่าคอมมิชชัน
-    performance_bonus BIGINT DEFAULT 0,  -- โบนัสผลงาน
-    other_allowances BIGINT DEFAULT 0,  -- เบี้ยอื่นๆ
+    sales_commission INTEGER DEFAULT 0,  -- ค่าคอมมิชชัน
+    performance_bonus INTEGER DEFAULT 0,  -- โบนัสผลงาน
+    other_allowances INTEGER DEFAULT 0,  -- เบี้ยอื่นๆ
     
     -- Deductions
-    late_deduction BIGINT DEFAULT 0,  -- หักเงินขาด/สาย
+    late_deduction INTEGER DEFAULT 0,  -- หักเงินขาด/สาย
     absence_days INTEGER DEFAULT 0,  -- วันขาดงาน
-    absence_deduction BIGINT DEFAULT 0,  -- หักเงินขาดงาน
-    tax_deduction BIGINT DEFAULT 0,  -- หักภาษี
-    social_security BIGINT DEFAULT 0,  -- ประกันสังคม
-    other_deductions BIGINT DEFAULT 0,  -- หักอื่นๆ
+    absence_deduction INTEGER DEFAULT 0,  -- หักเงินขาดงาน
+    tax_deduction INTEGER DEFAULT 0,  -- หักภาษี
+    social_security INTEGER DEFAULT 0,  -- ประกันสังคม
+    other_deductions INTEGER DEFAULT 0,  -- หักอื่นๆ
     
     -- Calculations
     gross_income BIGINT GENERATED ALWAYS AS (
