@@ -4,7 +4,7 @@ import PagesView from '@/components/views/PagesView';
 import MainLayout from '@/components/ui/MainLayout';
 import { useState } from 'react';
 
-export default function FBPagesPage() {
+export default function MyPagesPage() {
     const [notification, setNotification] = useState<{ msg: string, type: 'success' | 'error' } | null>(null);
 
     const showNotification = (msg: string, type: 'success' | 'error' = 'success') => {
@@ -15,8 +15,8 @@ export default function FBPagesPage() {
     return (
         <MainLayout>
             <div className="mb-6">
-                <h1 className="text-2xl font-bold text-slate-900">Facebook Pages Library</h1>
-                <p className="text-slate-500">จัดการข้อมูลเพจทั้งหมดในระบบ</p>
+                <h1 className="text-2xl font-bold text-slate-900">My Facebook Pages</h1>
+                <p className="text-slate-500">จัดการคลังเพจที่คุณรับผิดชอบ</p>
             </div>
 
             {notification && (

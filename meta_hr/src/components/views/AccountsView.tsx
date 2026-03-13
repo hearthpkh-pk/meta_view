@@ -1,9 +1,9 @@
 'use client';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import { Trash2, Copy, Plus, Users, Eye, EyeOff, Link as LinkIcon, CheckCircle2, X, LayoutGrid, List } from 'lucide-react';
 import { handleCopy, getStatusColor } from '@/lib/utils';
-import { Account, Status } from '@/types';
+import { Account, Page, Status } from '@/types';
 
 export default function AccountsView({ showNotification }: { showNotification: (msg: string, type?: 'success' | 'error') => void }) {
     const accounts = useAppStore((state) => state.accounts);
@@ -11,17 +11,51 @@ export default function AccountsView({ showNotification }: { showNotification: (
     const addAccount = useAppStore((state) => state.addAccount);
     const updateAccount = useAppStore((state) => state.updateAccount);
     const removeAccount = useAppStore((state) => state.removeAccount);
+    const currentRole = useAppStore((state) => state.currentRole);
+    const employees = useAppStore((state) => state.employees);
+
+    const selectedStaffId = useAppStore((state) => state.selectedStaffId);
+    const setSelectedStaffId = useAppStore((state) => state.setSelectedStaffId);
+    const viewModeStore = useAppStore((state) => state.viewMode);
+    const currentUser = useAppStore((state) => state.currentUser);
 
     const [rawInput, setRawInput] = useState('');
+    const [newPageName, setNewPageName] = useState('');
+    const [newPageUrl, setNewPageUrl] = useState('');
+    const [isFetchingName, setIsFetchingName] = useState(false);
+    const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+    
+    // Filter accounts based on mode and selection
+    const filteredAccounts = useMemo(() => {
+        let base = accounts;
+        if (viewModeStore === 'personal') {
+            base = accounts.filter((acc: Account) => acc.assigned_to === currentUser?.id);
+        } else if (selectedStaffId !== 'all') {
+            base = accounts.filter((acc: Account) => acc.assigned_to === selectedStaffId);
+        }
+        return base;
+    }, [accounts, viewModeStore, currentUser, selectedStaffId]);
+
+    // Filter pages based on mode and selection
+    const filteredPages = useMemo(() => {
+        let base = pages;
+        if (viewModeStore === 'personal') {
+            base = pages.filter((p: Page) => p.assigned_to === currentUser?.id);
+        } else if (selectedStaffId !== 'all') {
+            base = pages.filter((p: Page) => p.assigned_to === selectedStaffId);
+        }
+        return base;
+    }, [pages, viewModeStore, currentUser, selectedStaffId]);
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingAccount, setEditingAccount] = useState<Account | null>(null);
 
-    const sortedPages = [...pages].sort((a, b) => (a.id > b.id ? 1 : -1)); // Simple sort
+    const sortedPages = useMemo(() => 
+        [...filteredPages].sort((a, b) => (a.order_index || 0) - (b.order_index || 0)),
+    [filteredPages]);
 
     const [importFormat, setImportFormat] = useState<'Standard' | 'Alt_Standard' | 'FB_Pipe'>('Standard');
-    const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
 
     const FORMAT_OPTIONS = [
         { key: 'Standard' as const, label: 'F1', hint: 'Email : Password : Passmail : 2FA : URL' },
@@ -63,12 +97,12 @@ export default function AccountsView({ showNotification }: { showNotification: (
                     }
 
                     addAccount({
-                        id: crypto.randomUUID(),
                         uid: id,
-                        mail, password, passmail, twoPin, url,
-                        pagesManaged: [],
+                        name: mail, // Defaulting name to mail for now
+                        username: mail, password, passmail, two_pin: twoPin, url,
+                        pages_managed: [],
                         status: 'Active',
-                        showPassword: false
+                        show_password: false
                     });
                     successCount++;
                 } else {
@@ -94,12 +128,12 @@ export default function AccountsView({ showNotification }: { showNotification: (
                     }
 
                     addAccount({
-                        id: crypto.randomUUID(),
                         uid: id,
-                        mail, password, passmail, twoPin, url,
-                        pagesManaged: [],
+                        name: mail,
+                        username: mail, password, passmail, two_pin: twoPin, url,
+                        pages_managed: [],
                         status: 'Active',
-                        showPassword: false
+                        show_password: false
                     });
                     successCount++;
                 } else {
@@ -115,12 +149,12 @@ export default function AccountsView({ showNotification }: { showNotification: (
                     const url = uid ? `https://www.facebook.com/profile.php?id=${uid}` : '';
 
                     addAccount({
-                        id: crypto.randomUUID(),
                         uid,
-                        mail, password, passmail, twoPin: '', url,
-                        pagesManaged: [],
+                        name: mail,
+                        username: mail, password, passmail, two_pin: '', url,
+                        pages_managed: [],
                         status: 'Active',
-                        showPassword: false
+                        show_password: false
                     });
                     successCount++;
                 } else {
@@ -145,17 +179,17 @@ export default function AccountsView({ showNotification }: { showNotification: (
     const togglePageForAccount = (pageId: string) => {
         if (!editingAccount) return;
 
-        const currentPages = editingAccount.pagesManaged || [];
+        const currentPages = editingAccount.pages_managed || [];
         const newPages = currentPages.includes(pageId)
             ? currentPages.filter(id => id !== pageId)
             : [...currentPages, pageId];
 
-        updateAccount(editingAccount.id, { pagesManaged: newPages });
-        setEditingAccount({ ...editingAccount, pagesManaged: newPages });
+        updateAccount(editingAccount.id, { pages_managed: newPages });
+        setEditingAccount({ ...editingAccount, pages_managed: newPages });
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 animate-in fade-in duration-300">
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="p-5 border-b border-slate-100 flex flex-col gap-2">
                     <h2 className="text-lg font-semibold text-slate-800">เพิ่มบัญชี (Smart Import)</h2>
@@ -197,7 +231,9 @@ export default function AccountsView({ showNotification }: { showNotification: (
 
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="p-5 border-b border-slate-100 flex justify-between items-center">
-                    <h2 className="text-lg font-semibold text-slate-800">บัญชีทั้งหมด ({accounts.length})</h2>
+                    <div className="flex items-center gap-4">
+                        <h2 className="text-lg font-semibold text-slate-800">บัญชีทั้งหมด ({accounts.length})</h2>
+                    </div>
                     <div className="flex bg-slate-100 p-1 rounded-lg">
                         <button
                             onClick={() => setViewMode('table')}
@@ -218,21 +254,21 @@ export default function AccountsView({ showNotification }: { showNotification: (
 
                 {viewMode === 'table' ? (
                     <div className="divide-y divide-slate-100">
-                        {accounts.length === 0 ? (
+                        {filteredAccounts.length === 0 ? (
                             <div className="py-16 text-center text-slate-400">
                                 <Users size={48} className="mx-auto mb-3 opacity-20" />
                                 <p>ยังไม่มีข้อมูลบัญชี</p>
                             </div>
                         ) : (
-                            accounts.map((acc) => (
-                                <div key={acc.id} className="p-5 hover:bg-slate-50/30 transition-colors group">
+                            filteredAccounts.map((acc) => (
+                                <div key={acc.id} className="p-5 hover:bg-slate-50/30 transition-colors group text-left">
                                     <div className="flex items-center gap-4 mb-4">
                                         <div className="flex items-center gap-3 flex-1 min-w-0">
                                             <input
                                                 type="text"
                                                 value={acc.note || ''}
                                                 onChange={(e) => updateAccount(acc.id, { note: e.target.value })}
-                                                className="bg-primary-50 border border-primary-100 hover:border-primary-200 focus:border-primary-300 focus:bg-white rounded-lg px-3 py-1.5 outline-none text-sm font-semibold text-primary-800 transition-all w-44 shrink-0"
+                                                className="bg-amber-50/60 border border-amber-200/60 hover:border-amber-300 focus:border-amber-400 focus:bg-amber-50 rounded-lg px-3 py-1.5 outline-none text-sm font-semibold text-amber-800 transition-all placeholder:text-amber-300/80 w-44 shrink-0"
                                                 placeholder="ชื่อ / แท็ก"
                                             />
                                             <div className="flex items-center gap-2 min-w-0">
@@ -241,11 +277,11 @@ export default function AccountsView({ showNotification }: { showNotification: (
                                                     type="text"
                                                     value={acc.uid}
                                                     onChange={(e) => updateAccount(acc.id, { uid: e.target.value })}
-                                                    className="bg-transparent border border-transparent hover:border-slate-200 focus:border-blue-300 focus:bg-white rounded-lg px-2 py-1.5 outline-none text-sm font-mono text-slate-600 transition-all w-36"
+                                                    className="bg-transparent border border-transparent hover:border-slate-200 focus:border-blue-300 focus:bg-white rounded-lg px-2 py-1.5 outline-none text-sm font-mono text-slate-600 transition-all placeholder:text-slate-300 w-36"
                                                     placeholder="UID"
                                                 />
                                                 {acc.url && (
-                                                    <a href={acc.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700 shrink-0" title="ดูโปรไฟล์">
+                                                    <a href={acc.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700 shrink-0 transition-colors" title="ดูโปรไฟล์">
                                                         <LinkIcon size={14} />
                                                     </a>
                                                 )}
@@ -259,9 +295,7 @@ export default function AccountsView({ showNotification }: { showNotification: (
                                             >
                                                 <option value="Active">🟢 Active</option>
                                                 <option value="Rest">🟡 Rest</option>
-                                                <option value="Warning">🟠 Warning</option>
                                                 <option value="Error">🔴 Error</option>
-                                                <option value="Restricted">🚫 Restricted</option>
                                             </select>
                                             <button
                                                 onClick={() => {
@@ -271,47 +305,48 @@ export default function AccountsView({ showNotification }: { showNotification: (
                                                     }
                                                 }}
                                                 className="text-slate-300 hover:text-rose-500 p-1.5 hover:bg-rose-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                                title="ลบบัญชี"
                                             >
                                                 <Trash2 size={15} />
                                             </button>
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-4 gap-3 mb-4">
+                                    <div className="grid grid-cols-4 gap-3 mb-4 text-left">
                                         <div className="bg-slate-50/80 rounded-lg p-2.5 border border-slate-100">
                                             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Email</div>
                                             <div className="flex items-center gap-1">
-                                                <input type="text" value={acc.mail} onChange={(e) => updateAccount(acc.id, { mail: e.target.value })} className="flex-1 bg-transparent outline-none text-[13px] text-slate-700 min-w-0" />
-                                                <button onClick={() => handleCopy(acc.mail, () => showNotification('คัดลอกสำเร็จ'))} className="text-slate-300 hover:text-blue-600"><Copy size={12} /></button>
+                                                <input type="text" value={acc.username || ''} onChange={(e) => updateAccount(acc.id, { username: e.target.value })} className="flex-1 bg-transparent outline-none text-[13px] text-slate-700 min-w-0 placeholder:text-slate-300 truncate" placeholder="อีเมล" />
+                                                <button onClick={() => handleCopy(acc.username || '', () => showNotification('คัดลอกสำเร็จ'))} className="text-slate-300 hover:text-blue-600 p-1 rounded opacity-0 group-hover:opacity-100 transition-all shrink-0"><Copy size={12} /></button>
                                             </div>
                                         </div>
                                         <div className="bg-slate-50/80 rounded-lg p-2.5 border border-slate-100">
                                             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Password</div>
                                             <div className="flex items-center gap-1">
-                                                <input type={acc.showPassword ? "text" : "password"} value={acc.password} onChange={(e) => updateAccount(acc.id, { password: e.target.value })} className="flex-1 bg-transparent outline-none text-[13px] font-mono text-slate-700 min-w-0" />
-                                                <button onClick={() => updateAccount(acc.id, { showPassword: !acc.showPassword })} className="text-slate-400 hover:text-slate-600">{acc.showPassword ? <EyeOff size={12} /> : <Eye size={12} />}</button>
-                                                <button onClick={() => handleCopy(acc.password || '', () => showNotification('คัดลอกสำเร็จ'))} className="text-slate-300 hover:text-blue-600"><Copy size={12} /></button>
+                                                <input type={acc.show_password ? "text" : "password"} value={acc.password} onChange={(e) => updateAccount(acc.id, { password: e.target.value })} className="flex-1 bg-transparent outline-none text-[13px] font-mono text-slate-700 min-w-0 placeholder:text-slate-300" placeholder="รหัสผ่าน" />
+                                                <button onClick={() => updateAccount(acc.id, { show_password: !acc.show_password })} className="text-slate-400 hover:text-slate-600 p-1 rounded transition-all shrink-0">{acc.show_password ? <EyeOff size={12} /> : <Eye size={12} />}</button>
+                                                <button onClick={() => handleCopy(acc.password || '', () => showNotification('คัดลอกสำเร็จ'))} className="text-slate-300 hover:text-blue-600 p-1 rounded opacity-0 group-hover:opacity-100 transition-all shrink-0"><Copy size={12} /></button>
                                             </div>
                                         </div>
                                         <div className="bg-slate-50/80 rounded-lg p-2.5 border border-slate-100">
                                             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Passmail</div>
-                                            <input type={acc.showPassword ? "text" : "password"} value={acc.passmail} onChange={(e) => updateAccount(acc.id, { passmail: e.target.value })} className="w-full bg-transparent outline-none text-[13px] font-mono text-slate-700" />
+                                            <input type={acc.show_password ? "text" : "password"} value={acc.passmail} onChange={(e) => updateAccount(acc.id, { passmail: e.target.value })} className="w-full bg-transparent outline-none text-[13px] font-mono text-slate-700 placeholder:text-slate-300" placeholder="รหัสผ่านเมล" />
                                         </div>
                                         <div className="bg-slate-50/80 rounded-lg p-2.5 border border-slate-100">
                                             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">2FA Key</div>
                                             <div className="flex items-center gap-1">
-                                                <input type="text" value={acc.twoPin} onChange={(e) => updateAccount(acc.id, { twoPin: e.target.value })} className="flex-1 bg-transparent outline-none text-[13px] font-mono tracking-wide text-slate-700 min-w-0" />
-                                                <button onClick={() => handleCopy(acc.twoPin || '', () => showNotification('คัดลอกสำเร็จ'))} className="text-slate-300 hover:text-blue-600"><Copy size={12} /></button>
+                                                <input type="text" value={acc.two_pin} onChange={(e) => updateAccount(acc.id, { two_pin: e.target.value })} className="flex-1 bg-transparent outline-none text-[13px] font-mono tracking-wide text-slate-700 min-w-0 placeholder:text-slate-300 truncate" placeholder="2FA" />
+                                                <button onClick={() => handleCopy(acc.two_pin || '', () => showNotification('คัดลอกสำเร็จ'))} className="text-slate-300 hover:text-blue-600 p-1 rounded opacity-0 group-hover:opacity-100 transition-all shrink-0"><Copy size={12} /></button>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="flex items-start gap-4">
+                                    <div className="flex items-start gap-4 text-left">
                                         <div className="flex items-center gap-2 flex-1 min-w-0">
                                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">เพจ</span>
                                             <div className="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
-                                                {(acc.pagesManaged || []).map(pId => {
-                                                    const p = pages.find(x => x.id === pId);
+                                                {(acc.pages_managed || []).map((pId: string) => {
+                                                     const p = pages.find((x: Page) => x.id === pId);
                                                     if (!p) return null;
                                                     return (
                                                         <span key={pId} className="inline-flex items-center bg-indigo-50/80 text-indigo-700 border border-indigo-200/50 px-2 py-0.5 rounded text-[11px] font-medium truncate max-w-[120px]" title={p.name}>
@@ -319,16 +354,26 @@ export default function AccountsView({ showNotification }: { showNotification: (
                                                         </span>
                                                     );
                                                 })}
-                                                {(!acc.pagesManaged || acc.pagesManaged.length === 0) && (
+                                                {(!acc.pages_managed || acc.pages_managed.length === 0) && (
                                                     <span className="text-[11px] text-slate-300 italic">—</span>
                                                 )}
                                             </div>
                                             <button
                                                 onClick={() => openPageSelector(acc)}
-                                                className="text-[11px] text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 hover:bg-blue-50 px-2 py-1 rounded-md shrink-0"
+                                                className="text-[11px] text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 hover:bg-blue-50 px-2 py-1 rounded-md transition-colors shrink-0"
                                             >
                                                 <Plus size={12} /> จัดการ
                                             </button>
+                                        </div>
+                                        <div className="flex items-center gap-2 w-72 shrink-0">
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">Memo</span>
+                                            <input
+                                                type="text"
+                                                value={acc.comment || ''}
+                                                onChange={(e) => updateAccount(acc.id, { comment: e.target.value })}
+                                                className="flex-1 bg-transparent border border-transparent hover:border-slate-200 focus:border-blue-300 focus:bg-white rounded-lg px-2 py-1 outline-none text-[13px] text-slate-500 transition-all placeholder:text-slate-300"
+                                                placeholder="คอมเมนต์..."
+                                            />
                                         </div>
                                     </div>
                                 </div>
@@ -337,70 +382,150 @@ export default function AccountsView({ showNotification }: { showNotification: (
                     </div>
                 ) : (
                     <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 bg-slate-50/50">
-                        {accounts.map((acc) => (
-                             <div key={acc.id} className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-sm hover:shadow-md transition-all flex flex-col gap-3 group relative">
-                                <div className="flex justify-between items-start gap-3 border-b border-slate-100 pb-3">
-                                    <div className="flex-1 min-w-0">
-                                        <input
-                                            type="text"
-                                            value={acc.note || ''}
-                                            onChange={(e) => updateAccount(acc.id, { note: e.target.value })}
-                                            className="w-full bg-transparent border border-transparent hover:border-primary-200 focus:border-primary-300 rounded-lg px-1.5 py-0.5 -ml-1.5 outline-none text-[13px] font-semibold text-primary-800 transition-all truncate"
-                                            placeholder="ชื่อ / แท็ก"
-                                        />
-                                        <div className="flex items-center gap-1.5 mt-0.5">
-                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">ID</span>
+                        {filteredAccounts.length === 0 ? (
+                            <div className="col-span-full py-16 text-center text-slate-400 border-2 border-dashed border-slate-200 rounded-3xl bg-white">
+                                <Users size={48} className="mx-auto mb-3 opacity-20" />
+                                <p>ยังไม่มีข้อมูลบัญชี</p>
+                            </div>
+                        ) : (
+                            filteredAccounts.map((acc) => (
+                                <div key={acc.id} className="bg-white border text-left border-slate-200 rounded-xl p-3.5 shadow-sm hover:shadow-md transition-all flex flex-col gap-3 group hover:border-blue-200 relative">
+                                    <div className="flex justify-between items-start gap-3 border-b border-slate-100 pb-3">
+                                        <div className="flex-1 min-w-0">
                                             <input
                                                 type="text"
-                                                value={acc.uid}
-                                                onChange={(e) => updateAccount(acc.id, { uid: e.target.value })}
-                                                className="bg-transparent outline-none text-[11px] font-mono text-slate-500 w-full"
-                                                placeholder="UID"
+                                                value={acc.note || ''}
+                                                onChange={(e) => updateAccount(acc.id, { note: e.target.value })}
+                                                className="w-full bg-transparent border border-transparent hover:border-amber-200 focus:border-amber-300 focus:bg-amber-50/30 rounded-lg px-1.5 py-0.5 -ml-1.5 outline-none text-[13px] font-semibold text-amber-800 transition-all truncate placeholder:text-amber-300/70"
+                                                placeholder="ชื่อ / แท็ก"
                                             />
+                                            <div className="flex items-center gap-1.5 mt-0.5 px-0">
+                                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">ID</span>
+                                                <input
+                                                    type="text"
+                                                    value={acc.uid}
+                                                    onChange={(e) => updateAccount(acc.id, { uid: e.target.value })}
+                                                    className="bg-transparent outline-none text-[11px] font-mono text-slate-500 w-full placeholder:text-slate-300"
+                                                    placeholder="UID"
+                                                />
+                                                {acc.url && (
+                                                    <a href={acc.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700 shrink-0 transition-colors" title="โปรไฟล์">
+                                                        <LinkIcon size={11} />
+                                                    </a>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 shrink-0">
+                                            <select
+                                                value={acc.status}
+                                                onChange={(e) => updateAccount(acc.id, { status: e.target.value as Status })}
+                                                className={`appearance-none border rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-wide outline-none transition-all cursor-pointer shadow-sm hover:shadow ${getStatusColor(acc.status)}`}
+                                            >
+                                                <option value="Active">Active</option>
+                                                <option value="Rest">Rest</option>
+                                                <option value="Error">Error</option>
+                                            </select>
+                                            <button
+                                                onClick={() => {
+                                                    if (confirm('คุณแน่ใจหรือไม่ว่าต้องการลบบัญชีนี้?')) {
+                                                        removeAccount(acc.id);
+                                                        showNotification('ลบข้อมูลบัญชีแล้ว');
+                                                    }
+                                                }}
+                                                className="text-slate-400 hover:text-rose-600 p-1.5 hover:bg-rose-50 rounded-lg transition-all border border-transparent hover:border-rose-100"
+                                                title="ลบบัญชี"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
                                         </div>
                                     </div>
-                                    <select
-                                        value={acc.status}
-                                        onChange={(e) => updateAccount(acc.id, { status: e.target.value as Status })}
-                                        className={`appearance-none border rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-wide outline-none transition-all cursor-pointer ${getStatusColor(acc.status)}`}
-                                    >
-                                        <option value="Active">🟢 Active</option>
-                                        <option value="Rest">🟡 Rest</option>
-                                        <option value="Warning">🟠 Warning</option>
-                                        <option value="Error">🔴 Error</option>
-                                        <option value="Restricted">🚫 Restricted</option>
-                                    </select>
-                                </div>
 
-                                <div className="space-y-2">
-                                    <div className="flex items-center gap-2 bg-slate-50/80 rounded-lg p-2 border border-slate-100">
-                                        <input type="text" value={acc.mail} onChange={(e) => updateAccount(acc.id, { mail: e.target.value })} className="flex-1 bg-transparent outline-none text-xs text-slate-700 min-w-0" placeholder="Email" />
-                                        <button onClick={() => handleCopy(acc.mail, () => showNotification('คัดลอกสำเร็จ'))} className="text-slate-400 hover:text-blue-600"><Copy size={12} /></button>
+                                    <div className="space-y-2 flex-1">
+                                        <div className="flex items-center gap-2 bg-slate-50/80 rounded-lg p-2 border border-slate-100 hover:border-slate-200 transition-colors">
+                                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider w-8 shrink-0">Mail</div>
+                                            <input
+                                                type="text"
+                                                value={acc.username || ''}
+                                                onChange={(e) => updateAccount(acc.id, { username: e.target.value })}
+                                                className="flex-1 bg-transparent outline-none text-xs text-slate-700 min-w-0 placeholder:text-slate-300"
+                                                placeholder="Email"
+                                            />
+                                            <button onClick={() => handleCopy(acc.username || '', () => showNotification('คัดลอกสำเร็จ'))} className="text-slate-400 hover:text-blue-600 p-1 rounded hover:bg-white transition-all"><Copy size={12} /></button>
+                                        </div>
+                                        <div className="flex items-center gap-2 bg-slate-50/80 rounded-lg p-2 border border-slate-100 hover:border-slate-200 transition-colors">
+                                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider w-8 shrink-0">Pass</div>
+                                            <input
+                                                type={acc.show_password ? "text" : "password"}
+                                                value={acc.password}
+                                                onChange={(e) => updateAccount(acc.id, { password: e.target.value })}
+                                                className="flex-1 bg-transparent outline-none text-xs font-mono text-slate-700 min-w-0 placeholder:text-slate-300"
+                                                placeholder="Pass"
+                                            />
+                                            <button onClick={() => updateAccount(acc.id, { show_password: !acc.show_password })} className="text-slate-400 hover:text-slate-600 p-1 rounded hover:bg-white transition-all">
+                                                {acc.show_password ? <EyeOff size={12} /> : <Eye size={12} />}
+                                            </button>
+                                            <button onClick={() => handleCopy(acc.password || '', () => showNotification('คัดลอกสำเร็จ'))} className="text-slate-400 hover:text-blue-600 p-1 rounded hover:bg-white transition-all"><Copy size={12} /></button>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <div className="flex flex-col gap-1 bg-slate-50/80 rounded-lg p-2 border border-slate-100 hover:border-slate-200 transition-colors text-left">
+                                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">PMail</div>
+                                                <input
+                                                    type={acc.show_password ? "text" : "password"}
+                                                    value={acc.passmail}
+                                                    onChange={(e) => updateAccount(acc.id, { passmail: e.target.value })}
+                                                    className="w-full bg-transparent outline-none text-xs font-mono text-slate-700 placeholder:text-slate-300"
+                                                    placeholder="PMail"
+                                                />
+                                            </div>
+                                            <div className="flex flex-col gap-1 bg-slate-50/80 rounded-lg p-2 border border-slate-100 hover:border-slate-200 transition-colors relative group/2fa text-left">
+                                                <div className="flex justify-between items-center">
+                                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">2FA</div>
+                                                    <button onClick={() => handleCopy(acc.two_pin || '', () => showNotification('คัดลอกสำเร็จ'))} className="text-slate-400 hover:text-blue-600 absolute top-2 right-2 p-1 rounded hover:bg-white opacity-0 group-hover/2fa:opacity-100 transition-all"><Copy size={12} /></button>
+                                                </div>
+                                                <input
+                                                    type="text"
+                                                    value={acc.two_pin}
+                                                    onChange={(e) => updateAccount(acc.id, { two_pin: e.target.value })}
+                                                    className="w-full bg-transparent outline-none text-xs font-mono tracking-wider text-slate-700 truncate placeholder:text-slate-300"
+                                                    placeholder="2FA"
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-2 bg-slate-50/80 rounded-lg p-2 border border-slate-100">
-                                        <input type={acc.showPassword ? "text" : "password"} value={acc.password} onChange={(e) => updateAccount(acc.id, { password: e.target.value })} className="flex-1 bg-transparent outline-none text-xs font-mono text-slate-700 min-w-0" placeholder="Pass" />
-                                        <button onClick={() => updateAccount(acc.id, { showPassword: !acc.showPassword })} className="text-slate-400 hover:text-slate-600">
-                                            {acc.showPassword ? <EyeOff size={12} /> : <Eye size={12} />}
-                                        </button>
-                                        <button onClick={() => handleCopy(acc.password || '', () => showNotification('คัดลอกสำเร็จ'))} className="text-slate-400 hover:text-blue-600"><Copy size={12} /></button>
-                                    </div>
-                                </div>
 
-                                <div className="pt-3 border-t border-slate-100">
-                                    <div className="flex justify-between items-center mb-2">
-                                        <div className="text-[11px] font-bold text-slate-800">เพจที่ดูแล <span className="text-slate-400 font-normal">({acc.pagesManaged?.length || 0})</span></div>
-                                        <button onClick={() => openPageSelector(acc)} className="text-[10px] text-blue-600 font-medium hover:bg-blue-50 px-2 py-1 rounded-md transition-colors"><Plus size={10} /> จัดการ</button>
-                                    </div>
-                                    <div className="flex flex-wrap gap-1">
-                                        {(acc.pagesManaged || []).slice(0, 3).map(pId => {
-                                            const p = pages.find(x => x.id === pId);
-                                            return p ? <span key={pId} className="bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded text-[10px] truncate max-w-[100px]">{p.name}</span> : null;
-                                        })}
-                                        {(acc.pagesManaged?.length || 0) > 3 && <span className="text-[10px] text-slate-400">+{acc.pagesManaged!.length - 3}</span>}
+                                    <div className="pt-3 border-t border-slate-100 text-left">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <div className="text-[11px] font-bold text-slate-800">เพจที่ดูแล <span className="text-slate-400 font-normal">({acc.pages_managed?.length || 0})</span></div>
+                                            <button
+                                                onClick={() => openPageSelector(acc)}
+                                                className="text-[10px] text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 bg-blue-50/50 hover:bg-blue-100 px-2 py-1 rounded-md transition-colors border border-blue-100/50"
+                                            >
+                                                <Plus size={10} /> จัดการ
+                                            </button>
+                                        </div>
+                                        <div className="flex flex-wrap gap-1 min-h-[24px]">
+                                            {(acc.pages_managed || []).slice(0, 3).map((pId: string) => {
+                                                const p = pages.find((x: Page) => x.id === pId);
+                                                if (!p) return null;
+                                                return (
+                                                    <span key={pId} className="inline-flex items-center bg-indigo-50/80 text-indigo-700 border border-indigo-200/60 px-1.5 py-0.5 rounded text-[10px] font-medium truncate max-w-[100px]" title={p.name}>
+                                                        {p.name}
+                                                    </span>
+                                                );
+                                            })}
+                                            {(acc.pages_managed || []).length > 3 && (
+                                                <span className="inline-flex items-center bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[10px] font-medium">
+                                                    +{acc.pages_managed!.length - 3}
+                                                </span>
+                                            )}
+                                            {(!acc.pages_managed || acc.pages_managed.length === 0) && (
+                                                <span className="text-[10px] text-slate-400 italic">ยังไม่ได้ระบุเพจ</span>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
-                             </div>
-                        ))}
+                            ))
+                        )}
                     </div>
                 )}
             </div>
@@ -409,29 +534,50 @@ export default function AccountsView({ showNotification }: { showNotification: (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in">
                     <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh] animate-in zoom-in-95 duration-200">
                         <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                            <div>
+                            <div className="text-left">
                                 <h3 className="text-lg font-bold text-slate-800">เลือกเพจที่ดูแล</h3>
-                                <p className="text-xs text-slate-500 mt-1">บัญชี: {editingAccount.mail || editingAccount.uid}</p>
+                                <p className="text-xs text-slate-500 mt-1">บัญชี: {editingAccount.username || editingAccount.uid || 'ไม่ระบุชื่อ'}</p>
                             </div>
-                            <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-700 p-2 hover:bg-slate-200 rounded-full transition-colors"><X size={20} /></button>
+                            <button
+                                onClick={() => setIsModalOpen(false)}
+                                className="text-slate-400 hover:text-slate-700 p-2 hover:bg-slate-200 rounded-full transition-colors"
+                            >
+                                <X size={20} />
+                            </button>
                         </div>
 
                         <div className="p-5 overflow-y-auto flex-1">
                             {pages.length === 0 ? (
-                                <div className="text-center text-sm text-slate-400 py-8">ยังไม่มีเพจในระบบ กรุณาไปเพิ่มเพจก่อน</div>
+                                <div className="text-center text-sm text-slate-400 py-8">
+                                    ยังไม่มีเพจในระบบ กรุณาไปเพิ่มเพจก่อน
+                                </div>
                             ) : (
                                 <div className="space-y-2">
                                     {sortedPages.map(page => {
-                                        const isChecked = (editingAccount.pagesManaged || []).includes(page.id);
+                                        const isChecked = (editingAccount.pages_managed || []).includes(page.id);
                                         return (
-                                            <label key={page.id} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${isChecked ? 'border-primary-500 bg-primary-50' : 'border-slate-200 hover:bg-slate-50'}`}>
-                                                <input type="checkbox" className="hidden" checked={isChecked} onChange={() => togglePageForAccount(page.id)} />
-                                                <div className={`w-5 h-5 rounded-md border flex items-center justify-center ${isChecked ? 'bg-primary-600 border-primary-600 text-white' : 'border-slate-300 bg-white'}`}>
-                                                    {isChecked && <CheckCircle2 size={14} />}
+                                            <label
+                                                key={page.id}
+                                                className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${isChecked ? 'border-blue-500 bg-blue-50/50 shadow-sm' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                                                    }`}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    className="hidden"
+                                                    checked={isChecked}
+                                                    onChange={() => togglePageForAccount(page.id)}
+                                                />
+                                                <div className={`w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 transition-colors ${isChecked ? 'bg-blue-600 border-blue-600' : 'border-slate-300 bg-white'
+                                                    }`}>
+                                                    {isChecked && <CheckCircle2 size={14} className="text-white" />}
                                                 </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className={`text-sm font-semibold truncate ${isChecked ? 'text-primary-900' : 'text-slate-700'}`}>{page.name}</div>
-                                                    <div className="text-xs text-slate-500">{page.type}</div>
+                                                <div className="flex-1 min-w-0 text-left">
+                                                    <div className={`text-sm font-semibold truncate ${isChecked ? 'text-blue-900' : 'text-slate-700'}`}>
+                                                        {page.name}
+                                                    </div>
+                                                    <div className="text-xs text-slate-500 flex items-center gap-2">
+                                                        {page.page_type} <span className="w-1 h-1 rounded-full bg-slate-300"></span> <span className={getStatusColor(page.status).split(' ')[1]}>{page.status}</span>
+                                                    </div>
                                                 </div>
                                             </label>
                                         );
@@ -441,7 +587,12 @@ export default function AccountsView({ showNotification }: { showNotification: (
                         </div>
 
                         <div className="p-4 border-t border-slate-100 bg-white">
-                            <button onClick={() => setIsModalOpen(false)} className="w-full bg-primary-600 hover:bg-primary-700 text-white font-medium py-2.5 rounded-xl transition-colors">เสร็จสิ้น</button>
+                            <button
+                                onClick={() => setIsModalOpen(false)}
+                                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-xl transition-colors"
+                            >
+                                เสร็จสิ้น
+                            </button>
                         </div>
                     </div>
                 </div>

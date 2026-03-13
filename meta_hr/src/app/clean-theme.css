@@ -1,10 +1,11 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap');
+
 /* ==========================================
    🌿 Professional Design System - Meta Views
    Clean, Modern, Accessible
    ========================================== */
 
-/* Google Fonts - Clean & Modern */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap');
+/* Google Fonts - Handled at top */
 
 @tailwind base;
 @tailwind components;

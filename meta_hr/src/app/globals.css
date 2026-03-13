@@ -1,7 +1,7 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
-/* Google Fonts - Clean & Modern */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap');
+/* Google Fonts - Clean & Modern (Handled at top) */
 
 /* ==========================================
    🎨 Design System Variables (from clean-theme.css)
