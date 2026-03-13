@@ -39,32 +39,56 @@ export default function PagesView({ showNotification }: { showNotification: (msg
         [...filteredPages].sort((a, b) => (a.order_index || 0) - (b.order_index || 0)),
     [filteredPages]);
 
-    const handleAddPage = () => {
+    const handleAddPage = async () => {
         if (!newPageName.trim()) {
             showNotification('กรุณาใส่ชื่อเพจ', 'error');
             return;
         }
 
         const url = newPageUrl.trim();
+        const cleanUrl = url.replace(/\/+$/, '');
         let fb_id = '';
-        if (url.includes('facebook.com')) {
-            const parts = url.split('/');
-            fb_id = parts[parts.length - 1].split('?')[0];
+
+        if (cleanUrl.includes('facebook.com')) {
+            if (cleanUrl.includes('id=')) {
+                const match = cleanUrl.match(/[?&]id=([^&]+)/);
+                if (match) fb_id = match[1];
+            } else {
+                const urlParts = cleanUrl.split('/');
+                fb_id = urlParts[urlParts.length - 1].split('?')[0];
+            }
         }
 
-        addPage({
-            name: newPageName.trim(),
-            fb_page_id: fb_id || `manual_${Date.now()}`,
-            page_type: pageTypes[0] || 'Profile Page',
-            url: url,
-            status: 'Active',
-            comment: '',
-            order_index: pages.length + 1
-        });
+        // Final fallback
+        const finalFbId = fb_id || `manual_${Date.now()}`;
 
-        setNewPageName('');
-        setNewPageUrl('');
-        showNotification('เพิ่มเพจสำเร็จ');
+        // Local check for duplicate before sending to DB
+        if (pages.some(p => p.fb_page_id === finalFbId)) {
+            showNotification('ตรวจพบเพจนี้มีอยู่ในระบบแล้ว', 'error');
+            return;
+        }
+
+        try {
+            await addPage({
+                name: newPageName.trim(),
+                fb_page_id: finalFbId,
+                page_type: pageTypes[0] || 'รายการ',
+                url: url,
+                status: 'ใช้งานปกติ',
+                comment: '',
+                order_index: pages.length + 1
+            });
+
+            setNewPageName('');
+            setNewPageUrl('');
+            showNotification('เพิ่มเพจสำเร็จ', 'success');
+        } catch (error: any) {
+            console.error('Add page error:', error);
+            const msg = error.message?.includes('unique constraint') 
+                ? 'เพจนี้ถูกเพิ่มเข้าไปแล้วในระบบ' 
+                : (error.message || 'เกิดข้อผิดพลาดในการเพิ่มเพจ');
+            showNotification(msg, 'error');
+        }
     };
 
     const handleUrlBlur = async () => {

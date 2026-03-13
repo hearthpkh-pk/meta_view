@@ -18,9 +18,9 @@ export default function DashboardView({ onGoToPages }: { onGoToPages: () => void
         return pages.filter(p => p.assigned_to === currentUser?.id);
     }, [pages, viewMode, currentUser]);
 
-    const sortedPages = useMemo(() => 
+    const sortedPages = useMemo(() =>
         [...filteredPages].sort((a, b) => (a.order_index || 0) - (b.order_index || 0)),
-    [filteredPages]);
+        [filteredPages]);
 
     // Map page IDs to their overall sequential number
     const pageNumberMap = useMemo(() => {
@@ -42,21 +42,21 @@ export default function DashboardView({ onGoToPages }: { onGoToPages: () => void
         // Sort keys to prioritize 'ใช้งานปกติ' if grouping by Status
         if (groupBy === 'Status') {
             const priorityOrder = [
-                'ใช้งานปกติ', 'ใช้งาน (แจ้งเตือน)', 'ใช้งาน (จำกัด)',
-                'พักเพจปกติ', 'พักเพจ (แจ้งเตือน)', 'พักเพจ (จำกัด)',
+                'ใช้งานปกติ', 'ใช้งาน (เหลือง)', 'ใช้งาน (แดง)',
+                'พักเพจปกติ', 'พักเพจ (เหลือง)', 'พักเพจ (แดง)',
                 'เพจมีปัญหา'
             ];
 
             const sortedKeys = Object.keys(groups).sort((a, b) => {
                 const idxA = priorityOrder.indexOf(a);
                 const idxB = priorityOrder.indexOf(b);
-                
+
                 if (idxA !== -1 && idxB !== -1) return idxA - idxB;
                 if (idxA !== -1) return -1;
                 if (idxB !== -1) return 1;
                 return a.localeCompare(b);
             });
-            
+
             const sortedGroups: Record<string, typeof filteredPages> = {};
             sortedKeys.forEach(k => sortedGroups[k] = groups[k]);
             return sortedGroups;
@@ -115,7 +115,7 @@ export default function DashboardView({ onGoToPages }: { onGoToPages: () => void
                         )}
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
-                             {groupPages.map((page) => {
+                            {groupPages.map((page) => {
                                 const admins = accounts.filter(acc => (acc.pages_managed || []).includes(page.id));
                                 const pageNum = pageNumberMap.get(page.id);
 
