@@ -35,9 +35,9 @@ export default function PagesView({ showNotification }: { showNotification: (msg
         return base;
     }, [pages, viewModeStore, currentUser, selectedStaffId]);
 
-    const sortedPages = useMemo(() => 
+    const sortedPages = useMemo(() =>
         [...filteredPages].sort((a, b) => (a.order_index || 0) - (b.order_index || 0)),
-    [filteredPages]);
+        [filteredPages]);
 
     const handleAddPage = async () => {
         if (!newPageName.trim()) {
@@ -84,8 +84,8 @@ export default function PagesView({ showNotification }: { showNotification: (msg
             showNotification('เพิ่มเพจสำเร็จ', 'success');
         } catch (error: any) {
             console.error('Add page error:', error);
-            const msg = error.message?.includes('unique constraint') 
-                ? 'เพจนี้ถูกเพิ่มเข้าไปแล้วในระบบ' 
+            const msg = error.message?.includes('unique constraint')
+                ? 'เพจนี้ถูกเพิ่มเข้าไปแล้วในระบบ'
                 : (error.message || 'เกิดข้อผิดพลาดในการเพิ่มเพจ');
             showNotification(msg, 'error');
         }
