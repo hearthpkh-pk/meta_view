@@ -1,0 +1,13 @@
+{
+  "name": "@meta/backend",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./index.ts",
+  "types": "./types/index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./constants/*": "./constants/*.ts",
+    "./core/*": "./core/*.ts",
+    "./types/*": "./types/*.ts"
+  }
+}
